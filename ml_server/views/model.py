@@ -65,6 +65,7 @@ class ModelResource(Resource):
             app.logger.info(f'Successfully persisted {key}')
         except Exception as e:
             app.logger.exception(f'Failed persisting {key}', e)
+            MODEL_MANAGER.model_fail(key, self.serializer_backend())
         finally:
             executor.futures.pop(key)
 
