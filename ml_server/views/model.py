@@ -242,12 +242,7 @@ class ModelResource(Resource):
         if status != ModelStatus.Done:
             return {'message': status}
 
-        task = executor.futures.pop(key)
-
-        if task is not None:
-            mod = task.result()
-        else:
-            mod = self.load_model(MODEL_MANAGER, key)
+        mod = self.load_model(MODEL_MANAGER, key)
 
         app.logger.info(f'Predicting values using model {mod.__class__.__name__}')
 
