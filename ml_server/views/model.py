@@ -29,7 +29,6 @@ post_parser = patch_parser.copy()
 post_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
 
 
-# TODO: Add cache or something for storing models
 class ModelResource(Resource):
     def make_model(self, **kwargs):
         """
