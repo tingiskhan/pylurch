@@ -42,7 +42,7 @@ if __name__ == '__main__':
     app.run()
  ```
  
- Now, let's predict.
+ Now, let's train and predict.
  
  ```python
 import pandas as pd
