@@ -10,6 +10,7 @@ Some (key) differences between this library and the libraries usually seen on th
 1. Abstracts away the fit/prediction logic for easier deployment of new models. 
 2. Provides database model for storing fitted models as binaries with meta data instead of files.
 3. Allows using different backends for serializing the models, e.g. enables easy access to ONNX.
+4. Provides some simple authentication and database model for users.
 
 ## Install
 While you could install the library, the setup process is more aimed at providing a simple way of deploying using Docker. But, to install simply
