@@ -105,6 +105,7 @@ class Model(MyMixin, Base):
         self.hash_key = hash_key
         self.start_time = start_time
         self.status = status
+        self.backend = backend
         self.end_time = end_time
         self.byte_string = byte_string
 

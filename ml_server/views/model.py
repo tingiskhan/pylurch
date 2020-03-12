@@ -93,7 +93,7 @@ class ModelResource(Resource):
         :rtype: None
         """
 
-        model_manager.save(key, mod)
+        model_manager.save(key, mod, self.serializer_backend())
 
     def load_model(self, model_manager, key):
         """
@@ -105,7 +105,7 @@ class ModelResource(Resource):
         :return: Model
         """
 
-        return model_manager.load(key)
+        return model_manager.load(key, self.serializer_backend())
 
     def fit(self, model, x, y=None, **kwargs):
         """
@@ -145,7 +145,7 @@ class ModelResource(Resource):
         :rtype: dict
         """
 
-        if self.serializer_backend() != SerializerBackend:
+        if self.serializer_backend() != SerializerBackend.ONNX:
             raise NotImplementedError(f'You must override the method yourself!')
 
         inp_name = mod.get_inputs()[0].name
@@ -177,7 +177,7 @@ class ModelResource(Resource):
         if running_in_executor:
             return running_in_executor
 
-        return MODEL_MANAGER.check_status(key)
+        return MODEL_MANAGER.check_status(key, self.serializer_backend())
 
     @custom_login(auth_token.login_required)
     @custom_error
@@ -218,7 +218,10 @@ class ModelResource(Resource):
         if status is not None and not retrain:
             return {'message': status, 'model-key': key}
 
-        futures = executor.submit_stored(key, run_model, self.fit, model, x, MODEL_MANAGER, key, **algkwargs)
+        futures = executor.submit_stored(
+            key, run_model, self.fit, model, x, MODEL_MANAGER, key, self.serializer_backend(), **algkwargs
+        )
+
         futures.add_done_callback(lambda u: self.done_callback(u, key, x))
 
         app.logger.info(f'Successfully started training of {model.__class__.__name__} using {x.shape[0]} observations')
@@ -285,7 +288,10 @@ class ModelResource(Resource):
         if 'y' in args:
             kwargs['y'] = self.parse_data(args['y'])
 
-        futures = executor.submit_stored(key, run_model, self.update, model, x, MODEL_MANAGER, key, **kwargs)
+        futures = executor.submit_stored(
+            key, run_model, self.update, model, x, MODEL_MANAGER, key, self.serializer_backend(), **kwargs
+        )
+
         futures.add_done_callback(lambda u: self.done_callback(u, key, x))
 
         app.logger.info(f'Started updating of model {model.__class__.__name__} using {x.shape[0]} new observations')
@@ -300,7 +306,7 @@ class ModelResource(Resource):
 
         app.logger.info(f'Deleting model with key: {key}')
 
-        MODEL_MANAGER.delete(key)
+        MODEL_MANAGER.delete(key, self.serializer_backend())
 
         app.logger.info(f'Successfully deleted model with key: {key}')
 
