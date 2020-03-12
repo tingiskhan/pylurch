@@ -78,7 +78,7 @@ sleep(10)
 
 # ===== Predict in sample ===== #
 pred = {
-    'x': x.to_json(),
+    'x': x.to_json(orient=orient),
     'orient': orient,
     'model-key': resp['model-key']
 }
