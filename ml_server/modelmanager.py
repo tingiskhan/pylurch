@@ -2,7 +2,7 @@ import os
 from abc import ABC
 import onnxruntime as rt
 from google.cloud import storage
-from ml_server.db.models import Model
+from .db.models import Model
 from datetime import datetime
 import glob
 from .db.enums import ModelStatus, SerializerBackend
