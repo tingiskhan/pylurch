@@ -70,7 +70,7 @@ class ModelResource(Resource):
 
     def serialize(self, model, x, y=None):
         """
-        Convert model to ONNX.
+        Serialize model to byte string.
         :param model: The model to convert
         :param x: The data used for training
         :param y: The data used for training
