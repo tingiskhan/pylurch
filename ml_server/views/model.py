@@ -3,8 +3,9 @@ import pandas as pd
 from ..utils import BASE_REQ, hash_series, custom_error, custom_login, run_model
 from ..app import executor, auth_token, app, MODEL_MANAGER
 from hashlib import sha256
-from ..db.enums import ModelStatus
+from ..db.enums import ModelStatus, SerializerBackend
 import numpy as np
+
 
 base_parser = BASE_REQ.copy()
 base_parser.add_argument('x', type=str, required=True, help='JSON of data')
@@ -39,6 +40,14 @@ class ModelResource(Resource):
 
         raise NotImplementedError()
 
+    def serializer_backend(self):
+        """
+        Returns the backend used by the backend
+        :rtype: str
+        """
+
+        raise NotImplementedError()
+
     def done_callback(self, fut, key, x):
         """
         What to do when the callback is done.
@@ -51,9 +60,7 @@ class ModelResource(Resource):
         app.logger.info(f'Successfully trained {key}, now trying to persist')
 
         try:
-            as_onnx = self.convert_to_onnx(res, x)
-            bytestring = as_onnx.SerializeToString()
-
+            bytestring = self.serialize(res, x)
             self.save_model(MODEL_MANAGER, key, bytestring)
 
             app.logger.info(f'Successfully persisted {key}')
@@ -62,7 +69,7 @@ class ModelResource(Resource):
         finally:
             executor.futures.pop(key)
 
-    def convert_to_onnx(self, model, x, y=None):
+    def serialize(self, model, x, y=None):
         """
         Convert model to ONNX.
         :param model: The model to convert
@@ -132,12 +139,14 @@ class ModelResource(Resource):
         """
         Return the prediction.
         :param mod: The model
-        :type mod: onnxruntime.InferenceSession
         :param x: The data to predict for
         :type x: pd.DataFrame
         :return: JSON like dict
         :rtype: dict
         """
+
+        if self.serializer_backend() != SerializerBackend:
+            raise NotImplementedError(f'You must override the method yourself!')
 
         inp_name = mod.get_inputs()[0].name
         label_name = mod.get_outputs()[0].name
