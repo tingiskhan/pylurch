@@ -42,7 +42,7 @@ class ModelResource(Resource):
 
     def serializer_backend(self):
         """
-        Returns the backend used by the backend
+        Returns the backend used by the backend as a string. See db.enums.SerializerBackends
         :rtype: str
         """
 
