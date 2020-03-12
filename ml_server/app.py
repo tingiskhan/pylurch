@@ -38,19 +38,12 @@ app.config.setdefault('PRODUCTION', os.environ.get('PRODUCTION') or False)
 app.config.setdefault('EXTENSION', 'pkl')
 app.config.setdefault('EXTERNAL_AUTH', os.environ.get('EXTERNAL_AUTH') or True)
 
-# ===== Define tables ====== #
+# ===== Define engines and session ====== #
 ENGINE = create_engine(app.config.get('DB_ADDRESS'))
 SESSION = sessionmaker(bind=ENGINE)
 
-from ml_server.db.models import Base, User
-
-Base.metadata.create_all(ENGINE)
-
-app.logger.info('Successfully connected to database and created relevant tables')
-
 # ===== Check production ===== #
 from .modelmanager import SQLModelManager
-
 
 if app.config['PRODUCTION']:
     # ===== Setup google logging ===== #
@@ -58,7 +51,16 @@ if app.config['PRODUCTION']:
 
     logghelper = GoogleCloudLogging(app).add_handler()
 
+    assert not app.config['DB_ADDRESS'].lower().startswith('sqlite')
 
+# ===== Define tables ====== #
+from ml_server.db.models import Base, User
+
+Base.metadata.create_all(ENGINE)
+
+app.logger.info('Successfully connected to database and created relevant tables')
+
+# ===== Define model manager ====== #
 MODEL_MANAGER = SQLModelManager(app.logger, SESSION)
 app.logger.info(f'Application is configured as: {"production" if app.config["PRODUCTION"] else "debug"}')
 
@@ -110,6 +112,6 @@ if not app.config['EXTERNAL_AUTH']:
 
     app.logger.info('Registering login views')
 else:
-    app.logger.info('Using external authentication using IAM')
+    app.logger.info('Using external authentication')
 
 app.logger.info('Finished setting up application')
