@@ -50,22 +50,22 @@ def custom_login(auth):
     return wrap
 
 
-def run_model(func, x, model_manager, key, **kwargs):
+def run_model(func, model, x, model_manager, key, **kwargs):
     """
     Utility function
     :param func: The function to apply
+    :param model: The model
     :param x: The data
     :param model_manager: A model manager
     :type model_manager: BaseModelManager
     :param key: The key
-    :param meta: The meta
     :return:
     """
 
     model_manager.pre_model_start(key)
 
     try:
-        return func(x, **kwargs)
+        return func(model, x, **kwargs)
     except Exception as e:
         app.logger.exception(f'Failed task with key: {key}', e)
         model_manager.model_fail(key)

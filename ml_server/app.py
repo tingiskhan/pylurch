@@ -82,9 +82,11 @@ def verify_token(token):
 # ===== Define views ===== #
 from .views.example import HelloWorld
 from .views.admin import AdminView
+from .views.linreg import LinearRegressionView
 
 api.add_resource(HelloWorld, '/hello-world')
 api.add_resource(AdminView, '/admin')
+api.add_resource(LinearRegressionView, '/linreg')
 
 if not app.config['EXTERNAL_AUTH']:
     from .views.registration import LoginView, RegistrationView

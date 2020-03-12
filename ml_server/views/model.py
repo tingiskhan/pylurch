@@ -36,7 +36,7 @@ class ModelResource(Resource):
 
         raise NotImplementedError()
 
-    def done_callback(self, fut, key):
+    def done_callback(self, fut, key, x):
         """
         What to do when the callback is done.
         :param fut: The future
@@ -48,7 +48,7 @@ class ModelResource(Resource):
         app.logger.info(f'Successfully trained {key}, now trying to persist')
 
         try:
-            as_onnx = self.convert_to_onnx(res)
+            as_onnx = self.convert_to_onnx(res, x)
             bytestring = as_onnx.SerializeToString()
 
             self.save_model(MODEL_MANAGER, key, bytestring)
@@ -59,10 +59,12 @@ class ModelResource(Resource):
         finally:
             executor.futures.pop(key)
 
-    def convert_to_onnx(self, model):
+    def convert_to_onnx(self, model, x, y=None):
         """
         Convert model to ONNX.
         :param model: The model to convert
+        :param x: The data used for training
+        :param y: The data used for training
         :return: onnx
         """
 
@@ -81,7 +83,7 @@ class ModelResource(Resource):
         :rtype: None
         """
 
-        model_manager.save(key, mod, self.meta())
+        model_manager.save(key, mod)
 
     def load_model(self, model_manager, key):
         """
@@ -104,12 +106,26 @@ class ModelResource(Resource):
         :param y: The response data (if any)
         :type y: pd.DataFrame
         :param kwargs: Any additional key worded arguments
-        :return:
+        :return: The model
         """
 
         raise NotImplementedError()
 
-    def predict(self, mod, x):
+    def update(self, model, x, y=None, **kwargs):
+        """
+        Fits the model
+        :param model: The model to use
+        :param x: The data
+        :type x: pd.DataFrame
+        :param y: The response data (if any)
+        :type y: pd.DataFrame
+        :param kwargs: Any additional key worded arguments
+        :return: The model
+        """
+
+        raise ValueError('This model does not support updating!')
+
+    def predict(self, mod, x, **kwargs):
         """
         Return the prediction.
         :param mod: The model
@@ -158,7 +174,7 @@ class ModelResource(Resource):
         if running_in_executor:
             return running_in_executor
 
-        return MODEL_MANAGER.check_status(key, self.meta())
+        return MODEL_MANAGER.check_status(key)
 
     @custom_login(auth_token.login_required)
     @custom_error
@@ -199,8 +215,8 @@ class ModelResource(Resource):
         if status is not None and not retrain:
             return {'message': status, 'model-key': key}
 
-        futures = executor.submit_stored(key, run_model, self.fit, x, MODEL_MANAGER, key, **algkwargs)
-        futures.add_done_callback(lambda u: self.done_callback(u, key))
+        futures = executor.submit_stored(key, run_model, self.fit, model, x, MODEL_MANAGER, key, **algkwargs)
+        futures.add_done_callback(lambda u: self.done_callback(u, key, x))
 
         app.logger.info(f'Successfully started training of {model.__class__.__name__} using {x.shape[0]} observations')
 
@@ -248,8 +264,6 @@ class ModelResource(Resource):
     @custom_login(auth_token.login_required)
     @custom_error
     def patch(self):
-        return 404
-
         args = patch_parser.parse_args()
         key = args['model-key']
 
@@ -262,18 +276,14 @@ class ModelResource(Resource):
             return {'message': status}
 
         model = self.load_model(MODEL_MANAGER, key)
-
-        if not model.updateable:
-            return {'message': 'This model is not updateable!'}, 400
-
         x = self.parse_data(args['x'])
-        mask = x.index > model.latest_date
 
-        if not mask.any():
-            return {'message': 'Model already updated', 'latest-date': str(model.latest_date)}
+        kwargs = dict()
+        if 'y' in args:
+            kwargs['y'] = self.parse_data(args['y'])
 
-        futures = executor.submit_stored(key, run_model, self.update, x.loc[mask], MODEL_MANAGER, key)
-        futures.add_done_callback(lambda u: self.done_callback(u, key))
+        futures = executor.submit_stored(key, run_model, self.update, model, x, MODEL_MANAGER, key, **kwargs)
+        futures.add_done_callback(lambda u: self.done_callback(u, key, x))
 
         app.logger.info(f'Started updating of model {model.__class__.__name__} using {x.shape[0]} new observations')
 
