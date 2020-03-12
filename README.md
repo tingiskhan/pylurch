@@ -2,7 +2,7 @@
 Lightweight application for serving ML models.
 
 ## Background
-There's a lot of good resources for learning about how to structure an API for serving ML algorithms. [Medium](https://medium.com/) provides a plethora of different blogs around the subject, but a lot of them are for very specific use cases and are often very basic in order to get something up and running fast. 
+There's a lot of good resources for learning about how to structure an API for serving ML algorithms. [Medium](https://medium.com/) provides a plethora of different blogs around the subject, but a lot of them are for very specific use cases and are often very basic, in order to get something up and running fast. 
 
 As such, I decided to develop a library from what I've learnt from trying to deploy ML algorithms via APIs (on cloud architecture). Please note that the solution is something I've devloped in my own time, and is therfore not entirely bug free/optimally strucutured, as such see it as a complement to the blogs on Medium rather than a production grade ML server.
 
