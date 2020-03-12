@@ -135,12 +135,14 @@ class ModelResource(Resource):
 
         raise ValueError('This model does not support updating!')
 
-    def predict(self, mod, x, **kwargs):
+    def predict(self, mod, x, orient, **kwargs):
         """
         Return the prediction.
         :param mod: The model
         :param x: The data to predict for
         :type x: pd.DataFrame
+        :param orient: The orientation
+        :type orient: str
         :return: JSON like dict
         :rtype: dict
         """
@@ -151,7 +153,9 @@ class ModelResource(Resource):
         inp_name = mod.get_inputs()[0].name
         label_name = mod.get_outputs()[0].name
 
-        return {'y': mod.run([label_name], {inp_name: x.values.astype(np.float32)})[0].tolist()}
+        res = mod.run([label_name], {inp_name: x.values.astype(np.float32)})[0]
+
+        return {'y': pd.DataFrame(res, index=x.index, columns=['y']).to_json(orient=orient)}
 
     def parse_data(self, data, **kwargs):
         """
@@ -246,7 +250,7 @@ class ModelResource(Resource):
 
         app.logger.info(f'Predicting values using model {mod.__class__.__name__}')
 
-        return self.predict(mod, pd.read_json(args['x'], orient=args['orient']))
+        return self.predict(mod, pd.read_json(args['x'], orient=args['orient']), orient=args['orient'])
 
     @custom_login(auth_token.login_required)
     @custom_error
