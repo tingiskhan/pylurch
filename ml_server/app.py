@@ -64,7 +64,7 @@ app.logger.info('Successfully connected to database and created relevant tables'
 session = SESSION()
 
 if not session.query(User).filter(User.username == 'admin').one_or_none():
-    admin = User('admin', os.environ.get('ML_ADMIN', 'this-is-not-a-good-password'), admin=True)
+    admin = User('admin', os.environ.get('ML_ADMIN_PW', 'this-is-not-a-good-password'), admin=True)
     session.add(admin)
     session.commit()
 
