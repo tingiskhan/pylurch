@@ -31,3 +31,49 @@ You use the API as you would any REST based API. Every model exposes the five en
  3. `patch`: Corresponds to updating the model using data. Only applies to a few models in `sklearn`, and as such needs to be overridden by the user. Parameters correspond to i., ii., and iii. of 1.
  4. `delete`: Deletes all instances of a model. **Parameters**: Only `model-key` is required.
  5. `get`: Checks the status of the model, i.e. is it still training or can we use it for prediction. **Parameters**: Only `model-key`.
+ 
+ ## Example
+ A really trivial example follows below. It's assumed that you have started the server locally on port 5000.
+ ```python
+import pandas as pd
+from requests import post, put
+import json
+
+address = 'http://localhost:5000/'
+
+headers = {
+    'Content-type': 'application/json'
+}
+
+# ===== Generate some dummy data ===== #
+x = pd.DataFrame(pd.np.random.normal(size=(10000, 10)))
+y = (x.sum(axis=1) <= x.mean(axis=1)).astype(pd.np.float32)
+
+# ===== Define parameters to send ===== #
+orient = 'columns'
+
+params = {
+    'x': x.to_json(orient=orient),
+    'y': y.to_frame().to_json(orient=orient),
+    'orient': orient
+}
+
+# ===== Train the model (logistic regression) ====== #
+train = put(address + 'logreg', headers=headers, json=params)
+resp = json.loads(train.text)
+
+# ===== Let it train ===== #
+sleep(10)
+
+# ===== Predict in sample ===== #
+pred = {
+    'x': x.to_json(),
+    'orient': orient,
+    'model-key': resp['model-key']
+}
+
+predict = post(address + 'logreg', headers=headers, json=pred)
+yhat = pd.read_json(predict.text).iloc[:, 0]
+
+print(f'Precision is: {(yhat == y).mean():.2%}')
+ ```
