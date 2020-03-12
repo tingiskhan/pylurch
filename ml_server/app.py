@@ -95,11 +95,12 @@ def verify(username, password):
 # ===== Define views ===== #
 from .views.example import HelloWorld
 from .views.admin import AdminView
-from .views.linreg import LinearRegressionView
+from .views.regression import LinearRegressionView, LogisticRegressionView
 
 api.add_resource(HelloWorld, '/hello-world')
 api.add_resource(AdminView, '/admin')
 api.add_resource(LinearRegressionView, '/linreg')
+api.add_resource(LogisticRegressionView, '/logreg')
 
 if not app.config['EXTERNAL_AUTH']:
     from .views.registration import LoginView, RegistrationView
