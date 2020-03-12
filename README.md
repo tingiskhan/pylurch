@@ -29,7 +29,7 @@ You use the API as you would any REST based API. Every model exposes the five en
      6. `retrain`: Whether to initiate a new training of the model if one already exists.
      7. `name`: Whether to name the model, thus deriving the model key from the name instead of the data. If no name is passed, the data is hashed and the resulting key is used for identification.     
  2. `post`: Corresponds to sklearn's `predict`. **Parameters**: corresponds to i., iii. from 1. as well as `model-key`.       
- 3. `patch`: Corresponds to updating an existing model using new data. Only applies to a few models in `sklearn`, and as such needs to be overridden by the user. Parameters correspond to i., ii., and iii. of 1.
+ 3. `patch`: Corresponds to updating an existing model using new data. Only applies to a few models in `sklearn`, and as such needs to be overridden by the user. **Parameters**: corresponds to i., ii., and iii. of 1, as well as `model-key`.
  4. `delete`: Deletes all instances of a model. **Parameters**: Only `model-key` is required.
  5. `get`: Checks the status of the model, i.e. is it still training or can we use it for prediction. **Parameters**: Only `model-key`.
  
