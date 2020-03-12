@@ -144,18 +144,6 @@ class ModelResource(Resource):
 
         return pd.read_json(data, **kwargs).sort_index()
 
-    def get_return(self, response, model):
-        """
-        If the append anything to the get request.
-        :param response: The response
-        :type response: dict[str, object]
-        :param model: The model
-        :type model: BaseModel
-        :rtype: dict[str, object]
-        """
-
-        return response
-
     def check_model_status(self, key):
         """
         Helper function for checking the status of the model.
@@ -186,6 +174,9 @@ class ModelResource(Resource):
         # ===== Define model ===== #
         modkwargs = args['modkwargs'] or dict()
         algkwargs = args['algkwargs'] or dict()
+
+        if 'y' in args:
+            algkwargs['y'] = self.parse_data(args['y'])
 
         model = self.make_model(**modkwargs)
 
@@ -257,6 +248,8 @@ class ModelResource(Resource):
     @custom_login(auth_token.login_required)
     @custom_error
     def patch(self):
+        return 404
+
         args = patch_parser.parse_args()
         key = args['model-key']
 
