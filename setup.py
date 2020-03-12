@@ -23,6 +23,10 @@ setup(
         'pandas',
         'numpy',
         'cvxpy',
-        'scikit-learn'
+        'scikit-learn',
+        'onnx',
+        'onnxruntime',
+        'skl2onnx',
+        'dill'
     ]
 )

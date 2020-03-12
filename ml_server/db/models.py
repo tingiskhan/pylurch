@@ -2,10 +2,11 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy import Column, String, Boolean, DateTime, func, LargeBinary, Integer
 from ml_server.app import bcrypt, SESSION, app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
-from .enums import ModelStatus
+from .enums import ModelStatus, SerializerBackend
 from datetime import datetime
 import platform
 import onnxruntime as rt
+import dill
 
 
 class MyMixin(object):
@@ -92,11 +93,14 @@ class Model(MyMixin, Base):
 
     status = Column(String(255), nullable=False)
 
+    backend = Column(String(255), nullable=False)
     byte_string = Column(LargeBinary(), nullable=True)
 
-    def __init__(self, hash_key, start_time, status, end_time=datetime.max, byte_string=None):
+    def __init__(self, hash_key, start_time, status, backend, end_time=datetime.max, byte_string=None):
         if status not in ModelStatus():
             raise NotImplementedError(f'status must be in: {ModelStatus()}')
+        if backend not in SerializerBackend():
+            raise NotImplementedError(f'Status must be in: {SerializerBackend()}')
 
         self.hash_key = hash_key
         self.start_time = start_time
@@ -105,4 +109,7 @@ class Model(MyMixin, Base):
         self.byte_string = byte_string
 
     def load(self):
-        return rt.InferenceSession(self.byte_string)
+        if self.backend == SerializerBackend.ONNX:
+            return rt.InferenceSession(self.byte_string)
+        elif self.backend == SerializerBackend.Dill:
+            return dill.loads(self.byte_string)

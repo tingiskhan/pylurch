@@ -15,3 +15,8 @@ class ModelStatus(Mixin):
     Done = 'DONE'
     Failed = 'FAILED'
     Cancelled = 'CANCELLED'
+
+
+class SerializerBackend(Mixin):
+    Dill = 'dill'
+    ONNX = 'onnx'

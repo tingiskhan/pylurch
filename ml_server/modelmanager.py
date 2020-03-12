@@ -1,21 +1,28 @@
 import os
 from abc import ABC
-
 import onnxruntime as rt
 from google.cloud import storage
 from ml_server.db.models import Model
 from datetime import datetime
 import glob
-from .db.enums import ModelStatus
+from .db.enums import ModelStatus, SerializerBackend
+import dill
 
 
 class BaseModelManager(object):
-    def __init__(self, logger):
+    def __init__(self, logger, backend=SerializerBackend.ONNX):
         """
         Defines a base class for model management.
+        :param logger: The logger
+        :param backend: The backend to use
+        :type backend: str
         """
 
+        if backend not in SerializerBackend():
+            raise NotImplementedError(f'Backend must be in: {SerializerBackend}')
+
         self._logger = logger
+        self._backend = backend
 
     def pre_model_start(self, key):
         """
@@ -63,7 +70,10 @@ class BaseModelManager(object):
         if bytestring is None:
             return None
 
-        return rt.InferenceSession(bytestring)
+        if self._backend == SerializerBackend.ONNX:
+            return rt.InferenceSession(bytestring)
+        elif self._backend == SerializerBackend.Dill:
+            return dill.loads(bytestring)
 
     def save(self, name, obj):
         """
@@ -94,17 +104,17 @@ class BaseModelManager(object):
 
 
 class FileModelManager(BaseModelManager, ABC):
-    def __init__(self, logger, prefix, ext='pkl'):
+    def __init__(self, logger, prefix, **kwargs):
         """
         Defines a base class for model management.
         :param prefix: The prefix for each model file
         :type prefix: str
         """
 
-        super().__init__(logger)
+        super().__init__(logger, **kwargs)
 
         self._pref = prefix
-        self._ext = ext
+        self._ext = 'onnx' if self._backend == SerializerBackend.ONNX else 'pkl'
 
     def _format_name(self, name):
         return f'{name}.{self._ext}'
@@ -234,7 +244,14 @@ class GoogleCloudStorage(FileModelManager):
 
 
 class SQLModelManager(BaseModelManager):
-    def __init__(self, logger, session_maker):
+    def __init__(self, logger, session_maker, **kwargs):
+        """
+        Model manager for SQL based storing.
+        :param session_maker: The session maker used for connecting to data bases
+        :type session_maker: sqlalchemy.orm.sessionmaker
+        :param kwargs:
+        """
+
         super().__init__(logger)
         self._sessionmaker = session_maker
 
@@ -243,6 +260,7 @@ class SQLModelManager(BaseModelManager):
             hash_key=key,
             start_time=datetime.now(),
             status=ModelStatus.Running,
+            backend=self._backend
         )
 
         session = self._sessionmaker()
@@ -256,7 +274,8 @@ class SQLModelManager(BaseModelManager):
 
         model = session.query(Model).filter(
             Model.hash_key == key,
-            Model.status == ModelStatus.Running
+            Model.status == ModelStatus.Running,
+            Model.backend == self._backend
         ).one()  # type: Model
 
         model.status = ModelStatus.Failed
@@ -271,7 +290,8 @@ class SQLModelManager(BaseModelManager):
 
         model = session.query(Model).filter(
             Model.hash_key == name,
-            Model.status == ModelStatus.Running
+            Model.status == ModelStatus.Running,
+            Model.backend == self._backend
         ).one()  # type: Model
 
         model.status = ModelStatus.Done
@@ -293,7 +313,8 @@ class SQLModelManager(BaseModelManager):
         session = self._sessionmaker()
 
         model = session.query(Model).filter(
-            Model.hash_key == name
+            Model.hash_key == name,
+            Model.backend == self._backend
         ).order_by(Model.start_time.desc()).first()  # type: Model
 
         if model is None:
@@ -305,7 +326,8 @@ class SQLModelManager(BaseModelManager):
         session = self._sessionmaker()
 
         model = session.query(Model).filter(
-            Model.hash_key == key
+            Model.hash_key == key,
+            Model.backend == self._backend
         ).delete()
 
         session.commit()
@@ -317,6 +339,7 @@ class SQLModelManager(BaseModelManager):
 
         model = session.query(Model).filter(
             Model.hash_key == key,
+            Model.backend == self._backend
         ).order_by(Model.start_time.desc()).first()  # type: Model
 
         if model is not None:

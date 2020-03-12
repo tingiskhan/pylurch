@@ -253,7 +253,7 @@ class ModelResource(Resource):
             return {'message': status}
 
         mod = self.load_model(MODEL_MANAGER, key)
-        return self.get_return({'message': 'DONE', 'latest-date': str(mod.latest_date)}, mod)
+        return self.get_return({'message': 'DONE'}, mod)
 
     @custom_login(auth_token.login_required)
     @custom_error
