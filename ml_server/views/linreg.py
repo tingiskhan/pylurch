@@ -16,8 +16,5 @@ class LinearRegressionView(ModelResource):
     def fit(self, model, x, y=None, **kwargs):
         return model.fit(x, y)
 
-    def _predict(self, model, x):
-        return model.predict(x)
-
     def make_model(self, **kwargs):
         return LinearRegression(**kwargs)

@@ -4,6 +4,7 @@ from ..utils import BASE_REQ, hash_series, custom_error, custom_login, run_model
 from ..app import executor, auth_token, app, MODEL_MANAGER
 from hashlib import sha256
 from ..db.enums import ModelStatus
+import numpy as np
 
 base_parser = BASE_REQ.copy()
 base_parser.add_argument('x', type=str, required=True, help='JSON of data')
@@ -131,26 +132,17 @@ class ModelResource(Resource):
         """
         Return the prediction.
         :param mod: The model
-        :type mod: BaseModel
+        :type mod: onnxruntime.InferenceSession
         :param x: The data to predict for
         :type x: pd.DataFrame
         :return: JSON like dict
         :rtype: dict
         """
 
-        return {'y': self._predict(mod, x).tolist()}
+        inp_name = mod.get_inputs()[0].name
+        label_name = mod.get_outputs()[0].name
 
-    def _predict(self, model, x):
-        """
-        Method to be overridden by user.
-        :param model: The model
-        :param x: The data
-        :type x: pd.DataFrame
-        :return: Numpy array
-        :rtype: numpy.ndarray
-        """
-
-        raise NotImplementedError()
+        return {'y': mod.run([label_name], {inp_name: x.values.astype(np.float32)})[0].tolist()}
 
     def parse_data(self, data, **kwargs):
         """
@@ -247,7 +239,7 @@ class ModelResource(Resource):
 
         app.logger.info(f'Predicting values using model {mod.__class__.__name__}')
 
-        return self.predict(mod, args['x'])
+        return self.predict(mod, pd.read_json(args['x'], orient=args['orient']))
 
     @custom_login(auth_token.login_required)
     @custom_error

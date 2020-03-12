@@ -3,9 +3,9 @@ from sqlalchemy import Column, String, Boolean, DateTime, func, LargeBinary, Int
 from ml_server.app import bcrypt, SESSION, app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
 from .enums import ModelStatus
-import dill
 from datetime import datetime
 import platform
+import onnxruntime as rt
 
 
 class MyMixin(object):
@@ -105,11 +105,4 @@ class Model(MyMixin, Base):
         self.byte_string = byte_string
 
     def load(self):
-        lib = __import__(self.library)
-
-        if lib is None:
-            raise ValueError(f'The library {self.library} does not exist!')
-        if lib.__version__ != self.version:
-            app.logger.warning(f'The installed library {self.library} is different from saved - might cause issues')
-
-        return dill.loads(self.byte_string)
+        return rt.InferenceSession(self.byte_string)
