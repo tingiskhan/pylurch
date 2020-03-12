@@ -33,7 +33,17 @@ You use the API as you would any REST based API. Every model exposes the five en
  5. `get`: Checks the status of the model, i.e. is it still training or can we use it for prediction. **Parameters**: Only `model-key`.
  
  ## Example
- A really trivial example follows below. It's assumed that you have started the server locally on port 5000.
+ A really trivial example follows below. It's assumed that you have started the server locally on port 5000, which is done as 
+ ```python
+ from ml_server.app import app
+
+
+if __name__ == '__main__':
+    app.run()
+ ```
+ 
+ Now, let's predict.
+ 
  ```python
 import pandas as pd
 from requests import post, put
