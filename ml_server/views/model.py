@@ -5,9 +5,11 @@ from ..app import executor, auth_token, app, MODEL_MANAGER
 from hashlib import sha256
 from ..db.enums import ModelStatus
 
-patch_parser = BASE_REQ.copy()
-patch_parser.add_argument('x', type=str, required=True, help='JSON of data')
-patch_parser.add_argument('orient', type=str, help='The orientation of the JSON of the data', required=True)
+base_parser = BASE_REQ.copy()
+base_parser.add_argument('x', type=str, required=True, help='JSON of data')
+base_parser.add_argument('orient', type=str, help='The orientation of the JSON of the data', required=True)
+
+patch_parser = base_parser.copy()
 patch_parser.add_argument('y', type=str, help='The response variable')
 
 put_parser = patch_parser.copy()
@@ -21,8 +23,8 @@ get_parser.add_argument('model-key', type=str, required=True, help='Key of the m
 
 patch_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
 
-post_parser = get_parser.copy()
-post_parser.add_argument('x', type=int, required=True, help='The data to predict for')
+post_parser = patch_parser.copy()
+post_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
 
 
 # TODO: Add cache or something for storing models
