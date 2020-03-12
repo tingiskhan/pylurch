@@ -21,12 +21,8 @@ setup(
         'google-cloud-storage',
         'google-cloud-logging',
         'pandas',
-        'pymc3',
         'numpy',
         'cvxpy',
-        'scipy',
-        'matplotlib',
-        'scikit-learn',
-        'dill'
+        'scikit-learn'
     ]
 )
