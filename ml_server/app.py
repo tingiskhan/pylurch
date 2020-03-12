@@ -68,7 +68,7 @@ if not session.query(User).filter(User.username == 'admin').one_or_none():
     session.add(admin)
     session.commit()
 
-app.logger.info('Successfully created an admin user')
+    app.logger.info('Successfully created an admin user')
 
 # ===== Define model manager ====== #
 MODEL_MANAGER = SQLModelManager(app.logger, SESSION)
