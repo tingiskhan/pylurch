@@ -12,7 +12,7 @@ Some (key) differences between this library and the libraries usually seen on th
 3. Allows using different backends for serializing the models, e.g. enables easy access to ONNX.
 
 ## Install
-While you could install the library, the installation is more aimed at providing a simple way of deploying using Docker. But, to install simply
+While you could install the library, the setup process is more aimed at providing a simple way of deploying using Docker. But, to install simply
 ```
 pip install git+https://github.com/tingiskhan/ml-server
 ```
