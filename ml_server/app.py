@@ -60,6 +60,14 @@ Base.metadata.create_all(ENGINE)
 
 app.logger.info('Successfully connected to database and created relevant tables')
 
+# ===== Create a root user ===== #
+session = SESSION()
+admin = User('admin', os.environ.get('ML_ADMIN', 'this-is-not-a-good-password'), admin=True)
+session.add(admin)
+session.commit()
+
+app.logger.info('Successfully created an admin user')
+
 # ===== Define model manager ====== #
 MODEL_MANAGER = SQLModelManager(app.logger, SESSION)
 app.logger.info(f'Application is configured as: {"production" if app.config["PRODUCTION"] else "debug"}')
