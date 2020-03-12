@@ -19,7 +19,7 @@ pip install git+https://github.com/tingiskhan/ml-server
 
 ## Usage
 You use the API as you would any REST based API. Every model exposes the five endpoints:
- 1. `put`: Corresponds to sklearn's `fit`. Returns a JSON with `model-key`, corresponding to the internal name of the model. Parameters:
+ 1. `put`: Corresponds to sklearn's `fit`. Returns a JSON with `model-key`, corresponding to the internal name of the model. **Parameters**:
      1. `x`: Same as in `sklearn`, a `pandas.DataFrame`. Sent as JSON
      2. `y`: Same as in `sklearn`, depending on the model it's either a `pandas.Series` or `pandas.DataFrame`. Sent as JSON.
      3. `orient`: The orientation of the `DataFrame`s, i.e. the parameter `orient` in `pandas.DataFrame.to_json`
@@ -27,7 +27,7 @@ You use the API as you would any REST based API. Every model exposes the five en
      5. `algkwargs`: Any `kwargs` passed to `fit` method.
      6. `retrain`: Whether to initiate a new training of the model if one already exists.
      7. `name`: Whether to name the model, thus deriving the model key from the name instead of the data. If no name is passed, the data is hashed and the resulting key is used for identification.     
- 2. `post`: Corresponds to sklearn's `predict`. Parameters correspond to i., iii. from above as well as `model-key`.       
+ 2. `post`: Corresponds to sklearn's `predict`. **Parameters**: corresponds to i., iii. from 1. as well as `model-key`.       
  3. `patch`: Corresponds to updating the model using data. Only applies to a few models in `sklearn`, and as such needs to be overridden by the user. Parameters correspond to i., ii., and iii. of 1.
- 4. `delete`: Deletes all instances of a model. Paramters: Only `model-key` is required.
- 5. `get`: Checks the status of the model, i.e. is it still training or can we use it for prediction. Paramters: Only `model-key`.
+ 4. `delete`: Deletes all instances of a model. **Parameters**: Only `model-key` is required.
+ 5. `get`: Checks the status of the model, i.e. is it still training or can we use it for prediction. **Parameters**: Only `model-key`.
