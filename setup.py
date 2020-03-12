@@ -22,7 +22,6 @@ setup(
         'google-cloud-logging',
         'pandas',
         'numpy',
-        'cvxpy',
         'scikit-learn',
         'onnx',
         'onnxruntime',
