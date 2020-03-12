@@ -21,6 +21,7 @@ app.logger.setLevel(logging.DEBUG)
 # ===== Auth ====== #
 auth_token = HTTPTokenAuth(scheme='Token')
 auth_basic = HTTPBasicAuth()
+admin_auth = HTTPBasicAuth()
 
 # ===== Read config ====== #
 if 'FWS_CONFIG' in os.environ:
@@ -78,6 +79,18 @@ def verify(username, password):
 def verify_token(token):
     return User.verify_auth_token(token)
 
+
+# TODO: Duplication
+@admin_auth.verify_password
+def verify(username, password):
+    session = SESSION()
+
+    user = session.query(User).filter(User.username == username).one()
+    verified = user.verify_password(password) and user.admin
+
+    session.close()
+
+    return verified
 
 # ===== Define views ===== #
 from .views.example import HelloWorld
