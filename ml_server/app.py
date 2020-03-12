@@ -62,9 +62,11 @@ app.logger.info('Successfully connected to database and created relevant tables'
 
 # ===== Create a root user ===== #
 session = SESSION()
-admin = User('admin', os.environ.get('ML_ADMIN', 'this-is-not-a-good-password'), admin=True)
-session.add(admin)
-session.commit()
+
+if not session.query(User).filter(User.username == 'admin').one_or_none():
+    admin = User('admin', os.environ.get('ML_ADMIN', 'this-is-not-a-good-password'), admin=True)
+    session.add(admin)
+    session.commit()
 
 app.logger.info('Successfully created an admin user')
 
