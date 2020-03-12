@@ -1,5 +1,5 @@
 # ml-server
-Light weight application for serving ML models.
+Lightweight application for serving ML models.
 
 ## Background
 There's a lot of good resources for learning about how to structure an API for serving ML algorithms. [Medium](https://medium.com/) provides a plethora of different blogs around the subject, but a lot of them are for very specific use cases and are often very basic in order to get something up and running fast. 
