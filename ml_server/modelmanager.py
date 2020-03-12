@@ -1,5 +1,7 @@
 import os
-import dill
+from abc import ABC
+
+import onnxruntime as rt
 from google.cloud import storage
 from ml_server.db.models import Model
 from datetime import datetime
@@ -53,10 +55,15 @@ class BaseModelManager(object):
         Loads the model.
         :param name: The name of the model to save
         :type name: str
-        :return: Model
+        :return: onnxruntime.InferenceSession
         """
 
-        raise NotImplementedError()
+        bytestring = self._load(name)
+
+        if bytestring is None:
+            return None
+
+        return rt.InferenceSession(bytestring)
 
     def save(self, name, obj):
         """
@@ -82,8 +89,11 @@ class BaseModelManager(object):
 
         raise NotImplementedError()
 
+    def _load(self, name):
+        raise NotImplementedError()
 
-class FileModelManager(BaseModelManager):
+
+class FileModelManager(BaseModelManager, ABC):
     def __init__(self, logger, prefix, ext='pkl'):
         """
         Defines a base class for model management.
@@ -99,11 +109,6 @@ class FileModelManager(BaseModelManager):
     def _format_name(self, name):
         return f'{name}.{self._ext}'
 
-    def load(self, name):
-        name = f'{self._pref}/{self._format_name(name)}'
-
-        return self._load(name)
-
     def save(self, name, obj):
         name = f'{self._pref}/{self._format_name(name)}'
         self._save(name, obj)
@@ -111,9 +116,6 @@ class FileModelManager(BaseModelManager):
         return self
 
     def delete(self, key):
-        raise NotImplementedError()
-
-    def _load(self, name):
         raise NotImplementedError()
 
     def _save(self, name, obj):
@@ -138,11 +140,13 @@ class DebugModelManager(FileModelManager):
         return
 
     def _load(self, name):
+        name = f'{self._pref}/{name}.{self._ext}'
+
         if not os.path.exists(name):
             return None
 
         with open(name, 'rb') as f:
-            return dill.load(f)
+            return f.readlines()
 
     def delete(self, key):
         f = glob.glob(f'{self._pref}/*{key}.{self._ext}', recursive=True)
@@ -196,6 +200,8 @@ class GoogleCloudStorage(FileModelManager):
         blob.upload_from_string(obj)
 
     def _load(self, name):
+        name = f'{self._pref}/{name}.{self._ext}'
+
         client = storage.Client()
         bucket = client.get_bucket(self._bucket)
         blob = bucket.get_blob(name)
@@ -203,9 +209,7 @@ class GoogleCloudStorage(FileModelManager):
         if blob is None or not blob.exists():
             return None
 
-        byte_str = blob.download_as_string()
-
-        return dill.loads(byte_str)
+        return blob.download_as_string()
 
     def _get_blob(self, key):
         client = storage.Client()
@@ -285,7 +289,7 @@ class SQLModelManager(BaseModelManager):
 
         return self
 
-    def load(self, name):
+    def _load(self, name):
         session = self._sessionmaker()
 
         model = session.query(Model).filter(
@@ -293,9 +297,9 @@ class SQLModelManager(BaseModelManager):
         ).order_by(Model.start_time.desc()).first()  # type: Model
 
         if model is None:
-            return model
+            return None
 
-        return model.load()
+        return model.byte_string
 
     def delete(self, key):
         session = self._sessionmaker()
