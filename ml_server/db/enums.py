@@ -12,7 +12,7 @@ class Mixin(object):
 
 class ModelStatus(Mixin):
     Running = 'RUNNING'
-    Done = 'DONE'
+    Done = 'FINISHED'
     Failed = 'FAILED'
     Cancelled = 'CANCELLED'
 

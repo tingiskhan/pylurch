@@ -2,7 +2,7 @@ import os
 from abc import ABC
 import onnxruntime as rt
 from google.cloud import storage
-from .db.models import Model
+from .db.models import TrainingSession, Model
 from datetime import datetime
 import glob
 from .db.enums import ModelStatus, SerializerBackend
@@ -18,9 +18,11 @@ class BaseModelManager(object):
 
         self._logger = logger
 
-    def pre_model_start(self, key, backend):
+    def pre_model_start(self, name, key, backend):
         """
         If to do anything prior the starting the model.
+        :param name: The name of the model
+        :type name: str
         :param key: The key
         :type key: str
         :param backend: The backend to use
@@ -31,9 +33,11 @@ class BaseModelManager(object):
 
         return self
 
-    def model_fail(self, key, backend):
+    def model_fail(self, name, key, backend):
         """
         What to do on model fail. Usually nothing as data haven't been saved. Used in database scenarios
+        :param name: The name of the model
+        :type name: str
         :param key: The key
         :type key: str
         :param backend: The backend to use
@@ -44,9 +48,11 @@ class BaseModelManager(object):
 
         return self
 
-    def check_status(self, key, backend):
+    def check_status(self, name, key, backend):
         """
         Checks the status.
+        :param name: The name of the model
+        :type name: str
         :param key: The key of the model
         :type key: str
         :param backend: The backend to use
@@ -57,17 +63,19 @@ class BaseModelManager(object):
 
         raise NotImplementedError()
 
-    def load(self, name, backend):
+    def load(self, name, key, backend):
         """
         Loads the model.
         :param name: The name of the model to save
         :type name: str
+        :param key: The data key
+        :type key: str
         :param backend: The backend to use
         :type backend: str
         :return: onnxruntime.InferenceSession
         """
 
-        bytestring = self._load(name, backend)
+        bytestring = self._load(name, key, backend)
 
         if bytestring is None:
             return None
@@ -77,11 +85,13 @@ class BaseModelManager(object):
         elif backend == SerializerBackend.Dill:
             return dill.loads(bytestring)
 
-    def save(self, name, obj, backend):
+    def save(self, name, key, obj, backend):
         """
         Saving the model.
         :param name: The name of the model to save
         :type name: str
+        :param key: The key of the data
+        :type key: str
         :param obj: The model to save in byte string
         :type obj: bytes
         :param backend: The backend to use
@@ -92,10 +102,12 @@ class BaseModelManager(object):
 
         raise NotImplementedError()
 
-    def delete(self, key, backend):
+    def delete(self, name, key, backend):
         """
         Method for deleting object.
-        :param key: The name of the model to save
+        :param name: The name of the model
+        :type name: str
+        :param key: The key of the model to save
         :type key: str
         :param backend: The backend to use
         :type backend: str
@@ -105,7 +117,7 @@ class BaseModelManager(object):
 
         raise NotImplementedError()
 
-    def _load(self, name, backend):
+    def _load(self, name, key, backend):
         raise NotImplementedError()
 
 
@@ -125,16 +137,16 @@ class FileModelManager(BaseModelManager, ABC):
     def _get_ext(backend):
         return 'onnx' if backend == SerializerBackend.ONNX else 'pkl'
 
-    def _format_name(self, name, backend):
-        return f'{name}.{self._get_ext(backend)}'
+    def _format_name(self, name, key, backend):
+        return f'{name}-{key}.{self._get_ext(backend)}'
 
-    def save(self, name, obj, backend):
-        name = f'{self._pref}/{self._format_name(name, backend)}'
+    def save(self, name, key, obj, backend):
+        name = f'{self._pref}/{self._format_name(name, key, backend)}'
         self._save(name, obj)
 
         return self
 
-    def delete(self, key, backend):
+    def delete(self, name, key, backend):
         raise NotImplementedError()
 
     def _save(self, name, obj):
@@ -158,8 +170,8 @@ class DebugModelManager(FileModelManager):
 
         return
 
-    def _load(self, name, backend):
-        name = f'{self._pref}/{name}.{self._get_ext(backend)}'
+    def _load(self, name, key, backend):
+        name = f'{self._pref}/{self._format_name(name, key, backend)}'
 
         if not os.path.exists(name):
             return None
@@ -167,8 +179,8 @@ class DebugModelManager(FileModelManager):
         with open(name, 'rb') as f:
             return f.readlines()
 
-    def delete(self, key, backend):
-        f = glob.glob(f'{self._pref}/*{key}.{self._get_ext(backend)}', recursive=True)
+    def delete(self, name, key, backend):
+        f = glob.glob(f'{self._pref}/*{self._format_name(name, key, backend)}', recursive=True)
 
         if len(f) > 1:
             raise ValueError('Multiple models with same name!')
@@ -177,8 +189,8 @@ class DebugModelManager(FileModelManager):
 
         return self
 
-    def check_status(self, key, backend):
-        exists = os.path.exists(f'{self._pref}/{self._format_name(key, backend)}')
+    def check_status(self, name, key, backend):
+        exists = os.path.exists(f'{self._pref}/{self._format_name(name, key, backend)}')
 
         if exists:
             return ModelStatus.Done
@@ -218,8 +230,8 @@ class GoogleCloudStorage(FileModelManager):
 
         blob.upload_from_string(obj)
 
-    def _load(self, name, backend):
-        name = f'{self._pref}/{name}.{self._get_ext(backend)}'
+    def _load(self, name, key, backend):
+        name = f'{self._pref}/{self._format_name(name, key, backend)}'
 
         client = storage.Client()
         bucket = client.get_bucket(self._bucket)
@@ -230,21 +242,21 @@ class GoogleCloudStorage(FileModelManager):
 
         return blob.download_as_string()
 
-    def _get_blob(self, key, backend):
+    def _get_blob(self, name, key, backend):
         client = storage.Client()
 
         blobs = client.list_blobs(self._bucket, prefix=f'{self._pref}')
 
-        return (blob for blob in blobs if blob.name.endswith(f'{self._format_name(key, backend)}'))
+        return (blob for blob in blobs if blob.name.endswith(f'{self._format_name(name, key, backend)}'))
 
-    def delete(self, key, backend):
-        for blob in self._get_blob(key, backend):
+    def delete(self, name, key, backend):
+        for blob in self._get_blob(name, key, backend):
             blob.delete()
 
         return self
 
-    def check_status(self, key, backend):
-        blob_exists = len(self._get_blob(key, backend)) > 0
+    def check_status(self, name, key, backend):
+        blob_exists = len(self._get_blob(name, key, backend)) > 0
 
         if blob_exists:
             return ModelStatus.Done
@@ -255,7 +267,7 @@ class GoogleCloudStorage(FileModelManager):
 class SQLModelManager(BaseModelManager):
     def __init__(self, logger, session_maker):
         """
-        Model manager for SQL based storing.
+        TrainingSession manager for SQL based storing.
         :param session_maker: The session maker used for connecting to data bases
         :type session_maker: sqlalchemy.orm.sessionmaker
         :param kwargs:
@@ -264,28 +276,35 @@ class SQLModelManager(BaseModelManager):
         super().__init__(logger)
         self._sessionmaker = session_maker
 
-    def pre_model_start(self, key, backend):
-        model_run = Model(
+    def pre_model_start(self, name, key, backend):
+        session = self._sessionmaker()
+
+        model = session.query(Model).filter(Model.name == name).one_or_none()
+        if not model:
+            model = Model(name=name)
+            session.add(model)
+
+        model.training_sessions = [TrainingSession(
             hash_key=key,
             start_time=datetime.now(),
             status=ModelStatus.Running,
             backend=backend
-        )
+        )]
 
-        session = self._sessionmaker()
-        session.add(model_run)
         session.commit()
 
         return self
 
-    def model_fail(self, key, backend):
+    def model_fail(self, name, key, backend):
         session = self._sessionmaker()
 
-        model = session.query(Model).filter(
-            Model.hash_key == key,
-            Model.status == ModelStatus.Running,
-            Model.backend == backend
-        ).one()  # type: Model
+        model = session.query(TrainingSession).filter(
+            TrainingSession.hash_key == key,
+            TrainingSession.status == ModelStatus.Running,
+            TrainingSession.backend == backend,
+            Model.name == name,
+            TrainingSession.model_id == Model.id,
+        ).one()  # type: TrainingSession
 
         model.status = ModelStatus.Failed
         model.end_time = datetime.now()
@@ -294,14 +313,16 @@ class SQLModelManager(BaseModelManager):
 
         return self
 
-    def save(self, name, obj, backend):
+    def save(self, name, key, obj, backend):
         session = self._sessionmaker()
 
-        model = session.query(Model).filter(
-            Model.hash_key == name,
-            Model.status == ModelStatus.Running,
-            Model.backend == backend
-        ).one()  # type: Model
+        model = session.query(TrainingSession).filter(
+            TrainingSession.hash_key == key,
+            TrainingSession.status == ModelStatus.Running,
+            TrainingSession.backend == backend,
+            Model.name == name,
+            TrainingSession.model_id == Model.id,
+        ).one()  # type: TrainingSession
 
         model.status = ModelStatus.Done
         model.byte_string = obj
@@ -318,38 +339,44 @@ class SQLModelManager(BaseModelManager):
 
         return self
 
-    def _load(self, name, backend):
+    def _load(self, name, key, backend):
         session = self._sessionmaker()
 
-        model = session.query(Model).filter(
-            Model.hash_key == name,
-            Model.backend == backend
-        ).order_by(Model.start_time.desc()).first()  # type: Model
+        model = session.query(TrainingSession).filter(
+            Model.name == name,
+            TrainingSession.model_id == Model.id,
+            TrainingSession.hash_key == key,
+            TrainingSession.backend == backend
+        ).order_by(TrainingSession.start_time.desc()).first()  # type: TrainingSession
 
         if model is None:
             return None
 
         return model.byte_string
 
-    def delete(self, key, backend):
+    def delete(self, name, key, backend):
         session = self._sessionmaker()
 
-        model = session.query(Model).filter(
-            Model.hash_key == key,
-            Model.backend == backend
+        model = session.query(TrainingSession).filter(
+            Model.name == name,
+            TrainingSession.model_id == Model.id,
+            TrainingSession.hash_key == key,
+            TrainingSession.backend == backend
         ).delete()
 
         session.commit()
 
         return self
 
-    def check_status(self, key, backend):
+    def check_status(self, name, key, backend):
         session = self._sessionmaker()
 
-        model = session.query(Model).filter(
-            Model.hash_key == key,
-            Model.backend == backend
-        ).order_by(Model.start_time.desc()).first()  # type: Model
+        model = session.query(TrainingSession).filter(
+            Model.name == name,
+            TrainingSession.model_id == Model.id,
+            TrainingSession.hash_key == key,
+            TrainingSession.backend == backend
+        ).order_by(TrainingSession.start_time.desc()).first()  # type: TrainingSession
 
         if model is not None:
             return model.status

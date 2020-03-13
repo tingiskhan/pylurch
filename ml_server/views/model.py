@@ -65,7 +65,7 @@ class ModelResource(Resource):
             app.logger.info(f'Successfully persisted {key}')
         except Exception as e:
             app.logger.exception(f'Failed persisting {key}', e)
-            MODEL_MANAGER.model_fail(key, self.serializer_backend())
+            MODEL_MANAGER.model_fail(self.name(), key, self.serializer_backend())
         finally:
             executor.futures.pop(key)
 
@@ -93,7 +93,7 @@ class ModelResource(Resource):
         :rtype: None
         """
 
-        model_manager.save(key, mod, self.serializer_backend())
+        model_manager.save(self.name(), key, mod, self.serializer_backend())
 
     def load_model(self, model_manager, key):
         """
@@ -102,10 +102,10 @@ class ModelResource(Resource):
         :type model_manager: ModelManager
         :param key: The key
         :type key: str
-        :return: Model
+        :return: TrainingSession
         """
 
-        return model_manager.load(key, self.serializer_backend())
+        return model_manager.load(self.name(), key, self.serializer_backend())
 
     def fit(self, model, x, y=None, **kwargs):
         """
@@ -167,6 +167,9 @@ class ModelResource(Resource):
 
         return pd.read_json(data, **kwargs).sort_index()
 
+    def _make_executor_key(self, key):
+        return f'{self.name()}-{key}'
+
     def check_model_status(self, key):
         """
         Helper function for checking the status of the model.
@@ -176,12 +179,21 @@ class ModelResource(Resource):
         :rtype: str
         """
 
-        running_in_executor = executor.futures._state(key)
+        running_in_executor = executor.futures._state(self._make_executor_key(key))
 
         if running_in_executor:
             return running_in_executor
 
-        return MODEL_MANAGER.check_status(key, self.serializer_backend())
+        return MODEL_MANAGER.check_status(self.name(), key, self.serializer_backend())
+
+    def name(self):
+        """
+        The name of the model to use.
+        :return: Name of the model
+        :rtype: str
+        """
+
+        raise NotImplementedError()
 
     @custom_login(auth_token.login_required)
     @custom_error
@@ -196,41 +208,42 @@ class ModelResource(Resource):
 
         # ===== Define model ===== #
         modkwargs = args['modkwargs'] or dict()
-        algkwargs = args['algkwargs'] or dict()
+        akws = args['algkwargs'] or dict()
 
         if 'y' in args:
-            algkwargs['y'] = self.parse_data(args['y'])
+            akws['y'] = self.parse_data(args['y'])
 
         model = self.make_model(**modkwargs)
 
         # ===== Generate model key ===== #
-        data_key = args['name'] or hash_series(x)
-        key = sha256((data_key + model.__class__.__name__).encode()).hexdigest()
+        data_key = hash_series(x) if args['name'] is None else sha256((args['name']).encode()).hexdigest()
 
         # ===== Check status ===== #
-        status = self.check_model_status(key)
+        status = self.check_model_status(data_key)
 
         if status == ModelStatus.Running:
             if retrain:
                 return {
                     'message': f'Cannot cancel already {status} task. Try re-running when model is done',
-                    'model-key': key
+                    'model-key': data_key
                 }
 
-            return {'message': status, 'model-key': key}
+            return {'message': status, 'model-key': data_key}
 
         if status is not None and not retrain:
-            return {'message': status, 'model-key': key}
+            return {'message': status, 'model-key': data_key}
+
+        key = self._make_executor_key(data_key)
 
         futures = executor.submit_stored(
-            key, run_model, self.fit, model, x, MODEL_MANAGER, key, self.serializer_backend(), **algkwargs
+            key, run_model, self.fit, model, x, MODEL_MANAGER, self.name(), data_key, self.serializer_backend(), **akws
         )
 
-        futures.add_done_callback(lambda u: self.done_callback(u, key, x))
+        futures.add_done_callback(lambda u: self.done_callback(u, data_key, x))
 
         app.logger.info(f'Successfully started training of {model.__class__.__name__} using {x.shape[0]} observations')
 
-        return {'model-key': key}
+        return {'model-key': data_key}
 
     @custom_login(auth_token.login_required)
     @custom_error
@@ -241,7 +254,7 @@ class ModelResource(Resource):
         status = self.check_model_status(key)
 
         if status is None:
-            return {'message': 'Model does not exist!'}, 400
+            return {'message': 'TrainingSession does not exist!'}, 400
 
         if status != ModelStatus.Done:
             return {'message': status}
@@ -270,32 +283,34 @@ class ModelResource(Resource):
     @custom_error
     def patch(self):
         args = patch_parser.parse_args()
-        key = args['model-key']
+        dkey = args['model-key']
 
-        status = self.check_model_status(key)
+        status = self.check_model_status(dkey)
 
         if status is None:
-            return {'message': 'Model does not exist!'}, 400
+            return {'message': 'TrainingSession does not exist!'}, 400
 
         if status != ModelStatus.Done:
             return {'message': status}
 
-        model = self.load_model(MODEL_MANAGER, key)
+        model = self.load_model(MODEL_MANAGER, dkey)
         x = self.parse_data(args['x'])
 
         kwargs = dict()
         if 'y' in args:
             kwargs['y'] = self.parse_data(args['y'])
 
+        key = self._make_executor_key(dkey)
+
         futures = executor.submit_stored(
-            key, run_model, self.update, model, x, MODEL_MANAGER, key, self.serializer_backend(), **kwargs
+            key, run_model, self.update, model, x, MODEL_MANAGER, self.name(), dkey, self.serializer_backend(), **kwargs
         )
 
-        futures.add_done_callback(lambda u: self.done_callback(u, key, x))
+        futures.add_done_callback(lambda u: self.done_callback(u, dkey, x))
 
         app.logger.info(f'Started updating of model {model.__class__.__name__} using {x.shape[0]} new observations')
 
-        return {'message': executor.futures._state(key)}
+        return {'message': executor.futures._state(dkey)}
 
     @custom_login(auth_token.login_required)
     @custom_error
@@ -305,7 +320,7 @@ class ModelResource(Resource):
 
         app.logger.info(f'Deleting model with key: {key}')
 
-        MODEL_MANAGER.delete(key, self.serializer_backend())
+        MODEL_MANAGER.delete(self.name(), key, self.serializer_backend())
 
         app.logger.info(f'Successfully deleted model with key: {key}')
 

@@ -107,7 +107,7 @@ class TrainingSession(MyMixin, Base):
     backend = Column(String(255), nullable=False)
     byte_string = Column(LargeBinary(), nullable=True)
 
-    model = relationship(Model, back_populates='training_sessions', use_list=False)
+    model = relationship(Model, back_populates='training_sessions', uselist=False)
 
     def __init__(self, hash_key, start_time, status, backend, end_time=datetime.max, byte_string=None):
         if status not in ModelStatus():

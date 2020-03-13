@@ -14,7 +14,7 @@ class LinearRegressionView(ModelResource):
             ('x', FloatTensorType([None, x.shape[-1]])),
         ]
 
-        return convert_sklearn(model, 'regression', inputs).SerializeToString()
+        return convert_sklearn(model, self.name(), inputs).SerializeToString()
 
     def fit(self, model, x, y=None, **kwargs):
         return model.fit(x, y)
@@ -22,7 +22,13 @@ class LinearRegressionView(ModelResource):
     def make_model(self, **kwargs):
         return LinearRegression(**kwargs)
 
+    def name(self):
+        return 'linear-regression'
+
 
 class LogisticRegressionView(LinearRegressionView):
+    def name(self):
+        return 'logistic-regression'
+
     def make_model(self, **kwargs):
         return LogisticRegressionCV(**kwargs)
