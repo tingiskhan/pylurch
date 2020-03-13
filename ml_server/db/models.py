@@ -1,5 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy import Column, String, Boolean, DateTime, func, LargeBinary, Integer
+from sqlalchemy import Column, String, Boolean, DateTime, func, LargeBinary, Integer, ForeignKey
+from sqlalchemy.orm import relationship
 from ml_server.app import bcrypt, SESSION, app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
 from .enums import ModelStatus, SerializerBackend
@@ -86,6 +87,16 @@ class User(MyMixin, Base):
 
 
 class Model(MyMixin, Base):
+    name = Column(String(255), nullable=False, unique=True)
+
+    training_sessions = relationship('TrainingSession', back_populates='model')
+
+    def __init__(self, name):
+        self.name = name
+
+
+class TrainingSession(MyMixin, Base):
+    model_id = Column(Integer, ForeignKey(Model.id))
     hash_key = Column(String(255), nullable=False)
 
     start_time = Column(DateTime, nullable=False)
@@ -95,6 +106,8 @@ class Model(MyMixin, Base):
 
     backend = Column(String(255), nullable=False)
     byte_string = Column(LargeBinary(), nullable=True)
+
+    model = relationship(Model, back_populates='training_sessions', use_list=False)
 
     def __init__(self, hash_key, start_time, status, backend, end_time=datetime.max, byte_string=None):
         if status not in ModelStatus():
