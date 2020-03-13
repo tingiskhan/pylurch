@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy import Column, String, Boolean, DateTime, func, LargeBinary, Integer, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, func, LargeBinary, Integer, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 from ml_server.app import bcrypt, SESSION, app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
@@ -108,6 +108,7 @@ class TrainingSession(MyMixin, Base):
     byte_string = Column(LargeBinary(), nullable=True)
 
     model = relationship(Model, back_populates='training_sessions', uselist=False)
+    meta_data = relationship('MetaData')
 
     def __init__(self, hash_key, start_time, status, backend, end_time=datetime.max, byte_string=None):
         if status not in ModelStatus():
@@ -127,3 +128,10 @@ class TrainingSession(MyMixin, Base):
             return rt.InferenceSession(self.byte_string)
         elif self.backend == SerializerBackend.Dill:
             return dill.loads(self.byte_string)
+
+
+class MetaData(MyMixin, Base):
+    session_id = Column(Integer, ForeignKey(TrainingSession.id))
+
+    key = Column(String(255), nullable=False)
+    value = Column(String(255), nullable=False)

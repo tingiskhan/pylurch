@@ -47,12 +47,14 @@ class ModelResource(Resource):
 
         raise NotImplementedError()
 
-    def done_callback(self, fut, key, x):
+    def done_callback(self, fut, key, x, **kwargs):
         """
         What to do when the callback is done.
         :param fut: The future
         :type fut: flask_executor.futures.Future
         :param key: The key associated with the model
+        :param x: The data
+        :type x: pandas.DataFrame
         :type key: str
         """
         res = fut.result()
@@ -60,6 +62,8 @@ class ModelResource(Resource):
 
         try:
             bytestring = self.serialize(res, x)
+
+            meta_data = self.add_metadata(res, **kwargs)
             self.save_model(MODEL_MANAGER, key, bytestring)
 
             app.logger.info(f'Successfully persisted {key}')
@@ -80,7 +84,7 @@ class ModelResource(Resource):
 
         raise NotImplementedError()
 
-    def save_model(self, model_manager, key, mod):
+    def save_model(self, model_manager, key, mod, meta_data=None):
         """
         Method for saving the model.
         :param model_manager: The model manager
@@ -89,6 +93,8 @@ class ModelResource(Resource):
         :type key: str
         :param mod: The model
         :type mod: bytes
+        :param meta_data: Whether to add any metadata associated with the model
+        :type meta_data: pd.Series
         :return: Nothing
         :rtype: None
         """
@@ -195,6 +201,17 @@ class ModelResource(Resource):
 
         raise NotImplementedError()
 
+    def add_metadata(self, model, **kwargs):
+        """
+        Allows user to add string meta data associated with the model. Is called when model is done.
+        :param model: The instantiated model.
+        :param kwargs: The key worded arguments associated with the model
+        :return: A pandas.Series indexed with key -> value
+        :rtype: pandas.Series
+        """
+
+        return self
+
     @custom_login(auth_token.login_required)
     @custom_error
     def put(self):
@@ -239,7 +256,7 @@ class ModelResource(Resource):
             key, run_model, self.fit, model, x, MODEL_MANAGER, self.name(), data_key, self.serializer_backend(), **akws
         )
 
-        futures.add_done_callback(lambda u: self.done_callback(u, data_key, x))
+        futures.add_done_callback(lambda u: self.done_callback(u, data_key, x, **akws))
 
         app.logger.info(f'Successfully started training of {model.__class__.__name__} using {x.shape[0]} observations')
 
