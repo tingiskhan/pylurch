@@ -261,7 +261,7 @@ class ModelResource(Resource):
             return {'message': status, 'model-key': data_key}
 
         if status is not None and not retrain:
-            app.logger.info('Model already exists, and not retrain requested')
+            app.logger.info('Model already exists, and no retrain requested')
             return {'message': status, 'model-key': data_key}
 
         key = self._make_executor_key(data_key)
