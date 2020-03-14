@@ -1,10 +1,12 @@
 # ml-server
-Lightweight application for serving ML models.
+Lightweight Flask application for serving ML models.
 
 ## Background
-There's a lot of good resources for learning about how to structure an API for serving ML algorithms. [Medium](https://medium.com/) provides a plethora of different blogs around the subject, but a lot of them are for very specific use cases and are often rudimentary, in order to get something up and running fast. 
+There's a lot of good resources for learning about how to structure an API for serving ML algorithms. [Medium](https://medium.com/) provides a plethora of different blogs around the subject, but a lot of them are for very specific use cases in order to get something up and running fast.
 
-As such, I decided to share a library with what I've learnt from trying to deploy ML algorithms via APIs (on cloud architecture). Please note that the solution is something I've developed in my own time and is therefore not entirely bug free nor optimal, as such see it as a complement to the blogs on Medium rather than a production grade ML API.
+As such, I decided to share a library with what I've learnt from trying to deploy ML algorithms via APIs (on cloud architecture). In short, this library provides an "easy way" (I think at least) of deploying ML algorithms, abstracting away all the non-algorithm related parts; such as sending/parsing data/keeping track of running models/storing trained models. 
+
+Please note that the solution is something I've developed in my own time and is therefore not entirely bug free nor optimal, as such see it as a complement to the blogs on Medium rather than a production grade ML API.
 
 Some (key) differences between this library and the libraries usually seen on the Medium blogs:
 1. Abstracts away the fit/prediction logic for easier deployment of new models. 
