@@ -85,7 +85,8 @@ pred = {
 }
 
 predict = post(address + 'logreg', headers=headers, json=pred)
-yhat = pd.read_json(predict.text).iloc[:, 0]
+res = json.loads(predict.text)
+yhat = pd.read_json(res['y']).iloc[:, 0]
 
 print(f'Precision is: {(yhat == y).mean():.2%}')
  ```
