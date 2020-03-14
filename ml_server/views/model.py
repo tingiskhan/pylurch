@@ -258,7 +258,7 @@ class ModelResource(Resource):
 
         futures.add_done_callback(lambda u: self.done_callback(u, data_key, x, **akws))
 
-        app.logger.info(f'Successfully started training of {model.__class__.__name__} using {x.shape[0]} observations')
+        app.logger.info(f'Successfully started training of {self.name()} using {x.shape[0]} observations')
 
         return {'model-key': data_key}
 
@@ -278,7 +278,7 @@ class ModelResource(Resource):
 
         mod = self.load_model(MODEL_MANAGER, key)
 
-        app.logger.info(f'Predicting values using model {mod.__class__.__name__}')
+        app.logger.info(f'Predicting values using model {self.name()}')
 
         return self.predict(mod, pd.read_json(args['x'], orient=args['orient']), orient=args['orient'])
 
@@ -325,7 +325,7 @@ class ModelResource(Resource):
 
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x))
 
-        app.logger.info(f'Started updating of model {model.__class__.__name__} using {x.shape[0]} new observations')
+        app.logger.info(f'Started updating of model {self.name()} using {x.shape[0]} new observations')
 
         return {'message': executor.futures._state(dkey)}
 
