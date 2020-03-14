@@ -24,8 +24,8 @@ auth_basic = HTTPBasicAuth()
 admin_auth = HTTPBasicAuth()
 
 # ===== Read config ====== #
-if 'FWS_CONFIG' in os.environ:
-    app.config.from_envvar('FWS_CONFIG')
+if 'ML_API_CONFIG' in os.environ:
+    app.config.from_envvar('ML_API_CONFIG')
     app.logger.info('Successfully loaded config from environment variable')
 
 sqlite = 'sqlite:///debug-database.db?check_same_thread=false'
