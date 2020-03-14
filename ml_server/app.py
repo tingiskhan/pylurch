@@ -43,7 +43,7 @@ ENGINE = create_engine(app.config.get('DB_ADDRESS'))
 SESSION = sessionmaker(bind=ENGINE)
 
 # ===== Check production ===== #
-from .modelmanager import SQLModelManager
+from .model_managers import SQLModelManager
 
 if app.config['PRODUCTION']:
     # ===== Setup google logging ===== #

@@ -4,7 +4,7 @@ from hashlib import sha256
 import pandas as pd
 from .app import app
 from werkzeug.exceptions import BadRequest
-from .modelmanager import BaseModelManager
+from .model_managers import BaseModelManager
 
 
 BASE_REQ = RequestParser()
