@@ -7,6 +7,7 @@ from datetime import datetime
 import glob
 from .db.enums import ModelStatus, SerializerBackend
 import dill
+import yaml
 
 
 class BaseModelManager(object):
@@ -137,20 +138,80 @@ class FileModelManager(BaseModelManager, ABC):
     def _get_ext(backend):
         return 'onnx' if backend == SerializerBackend.ONNX else 'pkl'
 
-    def _format_name(self, name, key, backend):
-        return f'{name}-{key}.{self._get_ext(backend)}'
+    def _format_name(self, name, key, backend, yml=False):
+        first = f'{name}-{key}'
+
+        if not yml:
+            return f'{first}.{self._get_ext(backend)}'
+
+        return f'{first}-{backend}.yml'
+
+    def pre_model_start(self, name, key, backend):
+        yml = self._make_yaml(name, key, backend)
+
+        yml['start-time'] = datetime.now()
+        yml['end-time'] = datetime.max
+        yml['status'] = ModelStatus.Running
+
+        yml_name = self._format_name(f'{self._pref}/{name}', key, backend, yml=True)
+        self._save_yml(yml_name, yml)
+
+        return self
+
+    def model_fail(self, name, key, backend):
+        yml_name = self._format_name(f'{self._pref}/{name}', key, backend, yml=True)
+        yml = self._get_yml(yml_name)
+
+        yml['end-time'] = datetime.now()
+        yml['status'] = ModelStatus.Failed
+
+        return self
 
     def save(self, name, key, obj, backend):
+        # ===== YAML ===== #
+        yml_name = self._format_name(f'{self._pref}/{name}', key, backend, yml=True)
+        yml = self._get_yml(yml_name)
+
+        yml['end-time'] = datetime.now()
+        yml['status'] = ModelStatus.Done
+
+        self._save_yml(yml_name, yml)
+
+        # ====== Model ===== #
         name = f'{self._pref}/{self._format_name(name, key, backend)}'
         self._save(name, obj)
 
         return self
 
+    def check_status(self, name, key, backend):
+        yml_name = self._format_name(f'{self._pref}/{name}', key, backend, yml=True)
+        yml = self._get_yml(yml_name)
+
+        if yml is None:
+            return None
+
+        return yml['status']
+
     def delete(self, name, key, backend):
+        raise NotImplementedError()
+
+    def _get_yml(self, path):
+        raise NotImplementedError()
+
+    def _save_yml(self, path, yml):
         raise NotImplementedError()
 
     def _save(self, name, obj):
         raise NotImplementedError()
+
+    def _make_yaml(self, name, key, backend):
+        data = {
+            'model-name': name,
+            'hash-key': key,
+            'backend': backend
+        }
+
+        return data
 
 
 class DebugModelManager(FileModelManager):
@@ -163,6 +224,14 @@ class DebugModelManager(FileModelManager):
 
         if not os.path.exists(self._pref):
             os.mkdir(self._pref)
+
+    def _save_yml(self, path, yml):
+        with open(path, 'w') as f:
+            yaml.dump(yml, f)
+
+    def _get_yml(self, path):
+        with open(path, 'r') as s:
+            return yaml.safe_load(s)
 
     def _save(self, name, obj):
         with open(name, 'wb') as f:
@@ -177,7 +246,7 @@ class DebugModelManager(FileModelManager):
             return None
 
         with open(name, 'rb') as f:
-            return f.readlines()
+            return f.read()
 
     def delete(self, name, key, backend):
         f = glob.glob(f'{self._pref}/*{self._format_name(name, key, backend)}', recursive=True)
@@ -198,79 +267,12 @@ class DebugModelManager(FileModelManager):
         return None
 
 
-class GoogleCloudStorage(FileModelManager):
-    def __init__(self, logger, bucket, *args, **kwargs):
-        """
-        Defines a model manager for use when Google cloud is backend.
-        :param bucket: The bucket to use
-        :type bucket: str
-        """
-        super().__init__(logger, *args, **kwargs)
-        self._bucket = bucket
-
-        self._verify_bucket_exists()
-
-    def _verify_bucket_exists(self):
-        client = storage.Client()
-
-        if not client.get_bucket(self._bucket):
-            client.create_bucket(self._bucket)
-
-        # ===== Create a small file to verify it works ===== #
-        bucket = client.get_bucket(self._bucket)
-        blob = bucket.blob('this-is-a-test.txt')
-
-        blob.upload_from_string('Ha! I can upload')
-
-    def _save(self, name, obj):
-        client = storage.Client()
-        bucket = client.get_bucket(self._bucket)
-
-        blob = bucket.blob(name)
-
-        blob.upload_from_string(obj)
-
-    def _load(self, name, key, backend):
-        name = f'{self._pref}/{self._format_name(name, key, backend)}'
-
-        client = storage.Client()
-        bucket = client.get_bucket(self._bucket)
-        blob = bucket.get_blob(name)
-
-        if blob is None or not blob.exists():
-            return None
-
-        return blob.download_as_string()
-
-    def _get_blob(self, name, key, backend):
-        client = storage.Client()
-
-        blobs = client.list_blobs(self._bucket, prefix=f'{self._pref}')
-
-        return (blob for blob in blobs if blob.name.endswith(f'{self._format_name(name, key, backend)}'))
-
-    def delete(self, name, key, backend):
-        for blob in self._get_blob(name, key, backend):
-            blob.delete()
-
-        return self
-
-    def check_status(self, name, key, backend):
-        blob_exists = len(self._get_blob(name, key, backend)) > 0
-
-        if blob_exists:
-            return ModelStatus.Done
-
-        return None
-
-
 class SQLModelManager(BaseModelManager):
     def __init__(self, logger, session_maker):
         """
         TrainingSession manager for SQL based storing.
         :param session_maker: The session maker used for connecting to data bases
         :type session_maker: sqlalchemy.orm.sessionmaker
-        :param kwargs:
         """
 
         super().__init__(logger)
@@ -284,12 +286,14 @@ class SQLModelManager(BaseModelManager):
             model = Model(name=name)
             session.add(model)
 
-        model.training_sessions = [TrainingSession(
-            hash_key=key,
-            start_time=datetime.now(),
-            status=ModelStatus.Running,
-            backend=backend
-        )]
+        model.training_sessions = [
+            TrainingSession(
+                hash_key=key,
+                start_time=datetime.now(),
+                status=ModelStatus.Running,
+                backend=backend
+            )
+        ]
 
         session.commit()
 
