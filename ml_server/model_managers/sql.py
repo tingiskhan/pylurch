@@ -1,6 +1,6 @@
 from .base import BaseModelManager
 import platform
-from ml_server.db.models import TrainingSession, Model
+from ..db.models import TrainingSession, Model
 from datetime import datetime
 from ..db.enums import ModelStatus
 

@@ -4,7 +4,7 @@ from .base import BaseModelManager
 import platform
 from datetime import datetime
 import glob
-from ml_server.db.enums import ModelStatus, SerializerBackend
+from ..db.enums import ModelStatus, SerializerBackend
 import yaml
 
 

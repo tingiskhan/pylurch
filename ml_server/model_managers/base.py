@@ -1,8 +1,9 @@
 import onnxruntime as rt
-from ml_server.db.enums import SerializerBackend
+from ..db.enums import SerializerBackend
 import dill
 
 
+# TODO: Perhaps use YAML as base to streamline?
 class BaseModelManager(object):
     def __init__(self, logger):
         """

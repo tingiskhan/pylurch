@@ -1,6 +1,6 @@
 from flask_restful import Resource
 from ..utils import BASE_REQ
-from ml_server.db.models import User
+from ..db.models import User
 from ..app import SESSION, auth_basic
 from flask import request
 
