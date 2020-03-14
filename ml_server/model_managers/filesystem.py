@@ -168,11 +168,3 @@ class LocalModelManager(FileModelManager):
         os.remove(f[-1])
 
         return self
-
-    def check_status(self, name, key, backend):
-        exists = os.path.exists(f'{self._pref}/{self._format_name(name, key, backend)}')
-
-        if exists:
-            return ModelStatus.Done
-
-        return None
