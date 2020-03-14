@@ -15,10 +15,10 @@ patch_parser = base_parser.copy()
 patch_parser.add_argument('y', type=str, help='The response variable')
 
 put_parser = patch_parser.copy()
-put_parser.add_argument('name', type=str, help='Name of the series, used for persisting')
-put_parser.add_argument('modkwargs', type=dict, help='Kwargs for model')
+put_parser.add_argument('name', type=str, help='Name of the data set, used as key if provided')
+put_parser.add_argument('modkwargs', type=dict, help='Kwargs for model instantiation')
 put_parser.add_argument('algkwargs', type=dict, help='Kwargs for algorithm')
-put_parser.add_argument('retrain', type=str, help='Whether to retrain data', default='False')
+put_parser.add_argument('retrain', type=str, help='Whether to retrain using other data', default='False')
 
 get_parser = BASE_REQ.copy()
 get_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
