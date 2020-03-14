@@ -21,7 +21,7 @@ class BaseModelManager(object):
 
     def pre_model_start(self, name, key, backend):
         """
-        If to do anything prior the starting the model.
+        What to do before starting model. E.g. create a database entry or a YAML-file.
         :param name: The name of the model
         :type name: str
         :param key: The key
@@ -36,8 +36,7 @@ class BaseModelManager(object):
 
     def model_fail(self, name, key, backend):
         """
-        What to do on model fail. Usually nothing as data haven't been saved. Used in database scenarios
-        :param name: The name of the model
+        What to do on model fail.
         :type name: str
         :param key: The key
         :type key: str
@@ -88,7 +87,7 @@ class BaseModelManager(object):
 
     def save(self, name, key, obj, backend):
         """
-        Saving the model.
+        Save the model.
         :param name: The name of the model to save
         :type name: str
         :param key: The key of the data
@@ -105,7 +104,7 @@ class BaseModelManager(object):
 
     def delete(self, name, key, backend):
         """
-        Method for deleting object.
+        Method for deleting model.
         :param name: The name of the model
         :type name: str
         :param key: The key of the model to save
