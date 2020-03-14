@@ -75,6 +75,8 @@ class FileModelManager(BaseModelManager, ABC):
         yml['end-time'] = datetime.now()
         yml['status'] = ModelStatus.Failed
 
+        self._save_yml(yml_name, yml)
+
         return self
 
     def save(self, name, key, obj, backend):
