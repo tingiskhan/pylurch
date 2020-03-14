@@ -72,6 +72,7 @@ if not session.query(User).filter(User.username == 'admin').one_or_none():
 
 # ===== Define model manager ====== #
 MODEL_MANAGER = SQLModelManager(app.logger, SESSION)
+MODEL_MANAGER.close_all_running()
 app.logger.info(f'Application is configured as: {"production" if app.config["PRODUCTION"] else "debug"}')
 
 # ===== Authorization logic ===== #

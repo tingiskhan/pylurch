@@ -1,7 +1,7 @@
 import os
 from abc import ABC
 import onnxruntime as rt
-from google.cloud import storage
+import platform
 from .db.models import TrainingSession, Model
 from datetime import datetime
 import glob
@@ -18,6 +18,13 @@ class BaseModelManager(object):
         """
 
         self._logger = logger
+
+    def close_all_running(self):
+        """
+        Closes all running tasks. Mainly for use when starting.
+        """
+
+        raise NotImplementedError()
 
     def pre_model_start(self, name, key, backend):
         """
@@ -134,6 +141,30 @@ class FileModelManager(BaseModelManager, ABC):
 
         self._pref = prefix
 
+    def close_all_running(self):
+        ymls = glob.glob(f'{self._pref}/*.yml', recursive=True)
+
+        running = 0
+        for f in ymls:
+            yml = self._get_yml(f)
+
+            if yml.get('platform') != platform.node():
+                continue
+            if yml['status'] != ModelStatus.Running:
+                continue
+
+            yml['end-time'] = datetime.now()
+            yml['status'] = ModelStatus.Failed
+
+            self._save_yml(f, yml)
+
+            running += 1
+
+        if running > 0:
+            self._logger.info(f'Encountered {running} running training session, but just started - closing!')
+
+        return
+
     @staticmethod
     def _get_ext(backend):
         return 'onnx' if backend == SerializerBackend.ONNX else 'pkl'
@@ -208,7 +239,8 @@ class FileModelManager(BaseModelManager, ABC):
         data = {
             'model-name': name,
             'hash-key': key,
-            'backend': backend
+            'backend': backend,
+            'platform': platform.node()
         }
 
         return data
@@ -277,6 +309,27 @@ class SQLModelManager(BaseModelManager):
 
         super().__init__(logger)
         self._sessionmaker = session_maker
+
+    def close_all_running(self):
+        session = self._sessionmaker()
+
+        sessions = session.query(TrainingSession).filter(
+            TrainingSession.status == ModelStatus.Running,
+            TrainingSession.upd_by == platform.node()
+        ).all()
+
+        if not sessions:
+            return
+
+        self._logger.info(f'Encountered {len(sessions)} running training session, but just started - closing!')
+
+        for s in sessions:
+            s.end_time = datetime.now()
+            s.status = ModelStatus.Failed
+
+        session.commit()
+
+        return
 
     def pre_model_start(self, name, key, backend):
         session = self._sessionmaker()
