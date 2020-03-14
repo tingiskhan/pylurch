@@ -14,7 +14,7 @@ class BaseModelManager(object):
 
     def close_all_running(self):
         """
-        Closes all running tasks. Mainly for use when starting.
+        Closes all running tasks for this node. Called when starting the app to avoid having "broken" models.
         """
 
         raise NotImplementedError()
