@@ -1,7 +1,3 @@
-from google.cloud.logging import Client
-from google.cloud.logging.handlers import CloudLoggingHandler
-
-
 class BaseLogHelper(object):
     def __init__(self, app):
         """
@@ -20,12 +16,3 @@ class BaseLogHelper(object):
         """
 
         raise NotImplementedError()
-
-
-class GoogleCloudLogging(BaseLogHelper):
-    def add_handler(self):
-        client = Client()
-
-        self._app.logger.addHandler(CloudLoggingHandler(client, name=self._app.name))
-
-        return self
