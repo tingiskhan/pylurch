@@ -43,7 +43,7 @@ ENGINE = create_engine(app.config.get('DB_ADDRESS'))
 SESSION = sessionmaker(bind=ENGINE)
 
 # ===== Define tables ====== #
-from ml_server.db.models import Base, User
+from .db.models import Base, User
 
 Base.metadata.create_all(ENGINE)
 
