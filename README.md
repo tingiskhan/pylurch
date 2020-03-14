@@ -17,6 +17,7 @@ While you could install the library, the setup process is more aimed at providin
 ```
 pip install git+https://github.com/tingiskhan/ml-server
 ```
+There's also a Docker file included.
 
 ## Usage
 You use the API as you would any REST based API. Every model exposes the five endpoints:
