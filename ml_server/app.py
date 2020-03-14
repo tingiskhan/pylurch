@@ -42,17 +42,6 @@ app.config.setdefault('EXTERNAL_AUTH', os.environ.get('EXTERNAL_AUTH') or True)
 ENGINE = create_engine(app.config.get('DB_ADDRESS'))
 SESSION = sessionmaker(bind=ENGINE)
 
-# ===== Check production ===== #
-from .model_managers import SQLModelManager
-
-if app.config['PRODUCTION']:
-    # ===== Setup google logging ===== #
-    from .logginghelper import GoogleCloudLogging
-
-    logghelper = GoogleCloudLogging(app).add_handler()
-
-    assert not app.config['DB_ADDRESS'].lower().startswith('sqlite')
-
 # ===== Define tables ====== #
 from ml_server.db.models import Base, User
 
@@ -71,6 +60,8 @@ if not session.query(User).filter(User.username == 'admin').one_or_none():
     app.logger.info('Successfully created an admin user')
 
 # ===== Define model manager ====== #
+from .model_managers import SQLModelManager
+
 MODEL_MANAGER = SQLModelManager(app.logger, SESSION)
 MODEL_MANAGER.close_all_running()
 app.logger.info(f'Application is configured as: {"production" if app.config["PRODUCTION"] else "debug"}')
