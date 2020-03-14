@@ -18,8 +18,6 @@ setup(
         'flask-httpauth',
         'pandas',
         'gunicorn',
-        'google-cloud-storage',
-        'google-cloud-logging',
         'pandas',
         'numpy',
         'scikit-learn',
