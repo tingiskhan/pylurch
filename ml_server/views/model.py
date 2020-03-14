@@ -111,7 +111,20 @@ class ModelResource(Resource):
         :return: TrainingSession
         """
 
-        return model_manager.load(self.name(), key, self.serializer_backend())
+        obj = model_manager.load(self.name(), key, self.serializer_backend())
+
+        return self._load(obj)
+
+    def _load(self, obj):
+        """
+        To be overridden if you save something other than the actual model. E.g. if you choose to save a state
+        dictionary you need be override this method.
+        :param obj: The object
+        :type obj: object
+        :return: Model
+        """
+
+        return obj
 
     def fit(self, model, x, y=None, **kwargs):
         """
