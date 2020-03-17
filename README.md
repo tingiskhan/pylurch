@@ -39,11 +39,11 @@ You use the API as you would any REST based API. Every model exposes the five en
  ## Example
  A really trivial example follows below. It's assumed that you have started the server locally on port 5000, which is done as 
  ```python
- from ml_server.app import app
+ from ml_server.app import init_app
 
 
 if __name__ == '__main__':
-    app.run()
+    init_app().run()
  ```
  
  Now, let's train and predict.
