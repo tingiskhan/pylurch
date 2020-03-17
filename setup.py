@@ -14,7 +14,7 @@ setup(
         'flask-executor',
         'flask-bcrypt',
         'flask-restful',
-        'sqlalchemy',
+        'flask-sqlalchemy',
         'flask-httpauth',
         'pandas',
         'gunicorn',

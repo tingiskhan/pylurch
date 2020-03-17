@@ -12,4 +12,4 @@ COPY setup.py ./ml_server/
 
 RUN pip install ./ml_server/.
 
-ENTRYPOINT ["gunicorn", "-b :8080", "ml_server.app:app"]
+ENTRYPOINT ["gunicorn", "-b :8080", "ml_server.app:init_app()"]

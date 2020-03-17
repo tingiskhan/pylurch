@@ -1,7 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy import Column, String, Boolean, DateTime, func, LargeBinary, Integer, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
-from ml_server.app import bcrypt, SESSION, app
+from ml_server.app import bcrypt, db, app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
 from .enums import ModelStatus, SerializerBackend
 from datetime import datetime
@@ -55,7 +55,7 @@ class User(MyMixin, Base):
         :rtype: basestring
         """
 
-        s = Serializer(app.config['SECRET-KEY'], expires_in=app.config.get('TOKEN-EXPIRATION'))
+        s = Serializer(app.config['SECRET_KEY'], expires_in=app.config.get('TOKEN_EXPIRATION'))
         return s.dumps({'id': self.id})
 
     def verify_password(self, password):
@@ -71,7 +71,7 @@ class User(MyMixin, Base):
 
     @staticmethod
     def verify_auth_token(token):
-        s = Serializer(app.config['SECRET-KEY'])
+        s = Serializer(app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
         except SignatureExpired:
@@ -79,9 +79,7 @@ class User(MyMixin, Base):
         except BadSignature:
             return None
 
-        session = SESSION()
-        is_ok = session.query(User).get(data['id']) is not None
-        session.close()
+        is_ok = db.session.query(User).get(data['id']) is not None
 
         return is_ok
 
@@ -111,15 +109,15 @@ class TrainingSession(MyMixin, Base):
     meta_data = relationship('MetaData')
 
     def __init__(self, hash_key, start_time, status, backend, end_time=datetime.max, byte_string=None):
-        if status not in ModelStatus():
-            raise NotImplementedError(f'status must be in: {ModelStatus()}')
-        if backend not in SerializerBackend():
-            raise NotImplementedError(f'Status must be in: {SerializerBackend()}')
+        if status not in ModelStatus:
+            raise NotImplementedError(f'status must be in: {ModelStatus}')
+        if backend not in SerializerBackend:
+            raise NotImplementedError(f'Status must be in: {SerializerBackend}')
 
         self.hash_key = hash_key
         self.start_time = start_time
-        self.status = status
-        self.backend = backend
+        self.status = status.value
+        self.backend = backend.value
         self.end_time = end_time
         self.byte_string = byte_string
 

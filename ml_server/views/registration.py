@@ -1,7 +1,7 @@
 from flask_restful import Resource
 from ..utils import BASE_REQ
 from ..db.models import User
-from ..app import SESSION, auth_basic
+from ..app import db, auth_basic
 from flask import request
 
 user_parser = BASE_REQ.copy()
@@ -19,42 +19,35 @@ class RegistrationView(Resource):
         args = parser.parse_args()
         username = args['username']
 
-        session = SESSION()
-
-        if session.query(User).filter(User.username == username).count() > 0:
-            session.close()
+        if db.session.query(User).filter(User.username == username).count() > 0:
             return {'username': username, 'status': 'exists'}
 
         user = User(username, args['password'])
 
-        session.add(user)
-        session.commit()
-        session.close()
+        db.session.add(user)
+        db.session.commit()
 
         return {'username': username, 'status': 'created'}
 
     @auth_basic.login_required
     def get(self):
-        session = SESSION()
-        user = session.query(User).filter(User.username == request.authorization['username']).one()
+        user = db.session.query(User).filter(User.username == request.authorization['username']).one()
 
         if not user.admin:
-            session.close()
+            db.session.close()
             return 403
 
-        users = session.query(User).all()
+        users = db.session.query(User).all()
         usernames = [u.username for u in users]
-        session.close()
-
+        
         return {'users': usernames}
 
     @auth_basic.login_required
     def put(self):
-        session = SESSION()
-        user = session.query(User).filter(User.username == request.authorization['username']).one()
+        user = db.session.query(User).filter(User.username == request.authorization['username']).one()
 
-        if not user.admin and session.query(User).count() > 1:
-            session.close()
+        if not user.admin and db.session.query(User).count() > 1:
+            db.session.close()
             return 403
 
         args = alter_parser.parse_args()
@@ -62,30 +55,27 @@ class RegistrationView(Resource):
         if args['username'] == user.username:
             to_change = user
         else:
-            to_change = session.query(User).filter(User.username == args['username']).one()
+            to_change = db.session.query(User).filter(User.username == args['username']).one()
 
         to_change.admin = bool(args['admin'])
 
-        session.commit()
-        session.close()
+        db.session.commit()
 
         return {'status': 'success'}
 
     @auth_basic.login_required
     def delete(self):
-        session = SESSION()
-        user = session.query(User).filter(User.username == request.authorization['username']).one()
+        user = db.session.query(User).filter(User.username == request.authorization['username']).one()
 
         if not user.admin:
-            session.close()
+            db.session.close()
             return 403
 
         args = user_parser.parse_args()
-        to_delete = session.query(User).filter(User.username == args['username']).one()
-        session.delete(to_delete)
+        to_delete = db.session.query(User).filter(User.username == args['username']).one()
+        db.session.delete(to_delete)
 
-        session.commit()
-        session.close()
+        db.session.commit()
 
         return {'status': 'success'}
 
@@ -93,10 +83,7 @@ class RegistrationView(Resource):
 class LoginView(Resource):
     @auth_basic.login_required
     def get(self):
-        session = SESSION()
-        user = session.query(User).filter(User.username == request.authorization['username']).one()
+        user = db.session.query(User).filter(User.username == request.authorization['username']).one()
         auth_token = user.generate_auth_token().decode()
-
-        session.close()
 
         return {'token': auth_token}

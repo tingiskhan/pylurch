@@ -42,7 +42,7 @@ class ModelResource(Resource):
     def serializer_backend(self):
         """
         Returns the backend used by the backend as a string. See db.enums.SerializerBackends
-        :rtype: str
+        :rtype: ModelStatus
         """
 
         raise NotImplementedError()
@@ -251,7 +251,7 @@ class ModelResource(Resource):
         # ===== Check status ===== #
         status = self.check_model_status(data_key)
 
-        if status == ModelStatus.Running:
+        if status == ModelStatus.Running.value:
             if retrain:
                 return {
                     'message': f'Cannot cancel already {status} task. Try re-running when model is done',
@@ -287,7 +287,7 @@ class ModelResource(Resource):
         if status is None:
             return {'message': 'TrainingSession does not exist!'}, 400
 
-        if status != ModelStatus.Done:
+        if status != ModelStatus.Done.value:
             return {'message': status}
 
         mod = self.load_model(MODEL_MANAGER, key)
@@ -304,7 +304,7 @@ class ModelResource(Resource):
 
         status = self.check_model_status(key)
 
-        if status != ModelStatus.Done:
+        if status != ModelStatus.Done.value:
             return {'message': status}
 
         mod = self.load_model(MODEL_MANAGER, key)
@@ -321,7 +321,7 @@ class ModelResource(Resource):
         if status is None:
             return {'message': 'TrainingSession does not exist!'}, 400
 
-        if status != ModelStatus.Done:
+        if status != ModelStatus.Done.value:
             return {'message': status}
 
         model = self.load_model(MODEL_MANAGER, dkey)

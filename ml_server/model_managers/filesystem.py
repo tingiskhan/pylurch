@@ -29,11 +29,11 @@ class FileModelManager(BaseModelManager, ABC):
 
             if yml.get('platform') != platform.node():
                 continue
-            if yml['status'] != ModelStatus.Running:
+            if yml['status'] != ModelStatus.Running.value:
                 continue
 
             yml['end-time'] = datetime.now()
-            yml['status'] = ModelStatus.Failed
+            yml['status'] = ModelStatus.Failed.value
 
             self._save_yml(f, yml)
 
@@ -61,7 +61,7 @@ class FileModelManager(BaseModelManager, ABC):
 
         yml['start-time'] = datetime.now()
         yml['end-time'] = datetime.max
-        yml['status'] = ModelStatus.Running
+        yml['status'] = ModelStatus.Running.value
 
         yml_name = self._format_name(f'{self._pref}/{name}', key, backend, yml=True)
         self._save_yml(yml_name, yml)
@@ -73,7 +73,7 @@ class FileModelManager(BaseModelManager, ABC):
         yml = self._get_yml(yml_name)
 
         yml['end-time'] = datetime.now()
-        yml['status'] = ModelStatus.Failed
+        yml['status'] = ModelStatus.Failed.value
 
         self._save_yml(yml_name, yml)
 
@@ -85,7 +85,7 @@ class FileModelManager(BaseModelManager, ABC):
         yml = self._get_yml(yml_name)
 
         yml['end-time'] = datetime.now()
-        yml['status'] = ModelStatus.Done
+        yml['status'] = ModelStatus.Done.value
 
         self._save_yml(yml_name, yml)
 

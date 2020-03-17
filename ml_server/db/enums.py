@@ -1,22 +1,13 @@
-class Mixin(object):
-    @classmethod
-    def __contains__(cls, item):
-        attrs = vars(cls)
-
-        return item in attrs.values()
-
-    @classmethod
-    def __str__(cls):
-        return str(list(v for k, v in vars(cls).items() if not (v or '__').startswith('__')))
+from enum import Enum
 
 
-class ModelStatus(Mixin):
+class ModelStatus(Enum):
     Running = 'RUNNING'
     Done = 'FINISHED'
     Failed = 'FAILED'
     Cancelled = 'CANCELLED'
 
 
-class SerializerBackend(Mixin):
+class SerializerBackend(Enum):
     Dill = 'dill'
     ONNX = 'onnx'

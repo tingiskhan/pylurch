@@ -28,7 +28,7 @@ class BaseModelManager(object):
         :param key: The key
         :type key: str
         :param backend: The backend to use
-        :type backend: str
+        :type backend: SerializerBackend
         :return: Self
         :rtype: BaseModelManager
         """
@@ -42,7 +42,7 @@ class BaseModelManager(object):
         :param key: The key
         :type key: str
         :param backend: The backend to use
-        :type backend: str
+        :type backend: SerializerBackend
         :return: Self
         :rtype: BaseModelManager
         """
@@ -57,7 +57,7 @@ class BaseModelManager(object):
         :param key: The key of the model
         :type key: str
         :param backend: The backend to use
-        :type backend: str
+        :type backend: SerializerBackend
         :return: String indicating status
         :rtype: str
         """
@@ -72,7 +72,7 @@ class BaseModelManager(object):
         :param key: The data key
         :type key: str
         :param backend: The backend to use
-        :type backend: str
+        :type backend: SerializerBackend
         :return: onnxruntime.InferenceSession
         """
 
@@ -96,7 +96,7 @@ class BaseModelManager(object):
         :param obj: The model to save in byte string
         :type obj: bytes
         :param backend: The backend to use
-        :type backend: str
+        :type backend: SerializerBackend
         :return: None
         :rtype: None
         """
@@ -111,7 +111,7 @@ class BaseModelManager(object):
         :param key: The key of the model to save
         :type key: str
         :param backend: The backend to use
-        :type backend: str
+        :type backend: SerializerBackend
         :return: Self
         :rtype: BaseModelManager
         """
