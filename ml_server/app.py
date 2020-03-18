@@ -57,6 +57,8 @@ def init_app(ignore_models=False):
     # ===== Define tables ====== #
     from .db.models import Base, User
 
+    app.logger.info(f'Succesfully connected to {repr(db.session.bind.url)}')
+
     Base.metadata.create_all(db.session.bind)
 
     app.logger.info('Successfully connected to database and created relevant tables')
