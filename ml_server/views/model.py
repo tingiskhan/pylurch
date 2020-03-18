@@ -240,7 +240,7 @@ class ModelResource(Resource):
         modkwargs = args['modkwargs'] or dict()
         akws = args['algkwargs'] or dict()
 
-        if 'y' in args:
+        if args['y'] is not None:
             akws['y'] = self.parse_data(args['y'])
 
         model = self.make_model(**modkwargs)
@@ -294,7 +294,7 @@ class ModelResource(Resource):
 
         app.logger.info(f'Predicting values using model {self.name()}')
 
-        return self.predict(mod, pd.read_json(args['x'], orient=args['orient']), orient=args['orient'])
+        return self.predict(mod, self.parse_data(args['x'], orient=args['orient']), orient=args['orient'])
 
     @custom_login(auth_token.login_required)
     @custom_error
