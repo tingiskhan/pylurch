@@ -71,7 +71,7 @@ class ModelResource(Resource):
             ac.app.logger.info(f'Successfully persisted {dkey}')
         except Exception as e:
             ac.app.logger.exception(f'Failed persisting {dkey}', e)
-            MODEL_MANAGER.model_fail(self.name(), fkey, self.serializer_backend())
+            MODEL_MANAGER.model_fail(self.name(), dkey, self.serializer_backend())
         finally:
             executor.futures.pop(fkey)
 
