@@ -270,7 +270,7 @@ class ModelResource(Resource):
             key, run_model, self.fit, model, x, MODEL_MANAGER, self.name(), data_key, self.serializer_backend(), **akws
         )
 
-        futures.add_done_callback(lambda u: self.done_callback(u, data_key, x, **akws))
+        futures.add_done_callback(lambda u: self.done_callback(u, key, x, **akws))
 
         ac.app.logger.info(f'Successfully started training of {self.name()} using {x.shape[0]} observations')
 
