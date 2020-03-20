@@ -1,9 +1,9 @@
 from flask_restful import Resource
 import pandas as pd
 from ..utils import BASE_REQ, hash_series, custom_error, custom_login, run_model
-from ..app import executor, auth_token, app, MODEL_MANAGER
+from ..app import executor, auth_token, ac, MODEL_MANAGER
 from hashlib import sha256
-from ..db.enums import ModelStatus, SerializerBackend
+from ..db.enums import ModelStatus, SerializerBackend, EXECUTOR_MAP
 import numpy as np
 
 
@@ -58,7 +58,7 @@ class ModelResource(Resource):
         :type key: str
         """
         res = fut.result()
-        app.logger.info(f'Successfully trained {key}, now trying to persist')
+        ac.app.logger.info(f'Successfully trained {key}, now trying to persist')
 
         try:
             bytestring = self.serialize(res, x)
@@ -66,9 +66,9 @@ class ModelResource(Resource):
             meta_data = self.add_metadata(res, **kwargs)
             self.save_model(MODEL_MANAGER, key, bytestring)
 
-            app.logger.info(f'Successfully persisted {key}')
+            ac.app.logger.info(f'Successfully persisted {key}')
         except Exception as e:
-            app.logger.exception(f'Failed persisting {key}', e)
+            ac.app.logger.exception(f'Failed persisting {key}', e)
             MODEL_MANAGER.model_fail(self.name(), key, self.serializer_backend())
         finally:
             executor.futures.pop(key)
@@ -195,13 +195,13 @@ class ModelResource(Resource):
         :param key: The key of the model
         :type key: str
         :return: String indicating status
-        :rtype: str
+        :rtype: ModelStatus
         """
 
         running_in_executor = executor.futures._state(self._make_executor_key(key))
 
         if running_in_executor:
-            return running_in_executor
+            return EXECUTOR_MAP[running_in_executor]
 
         return MODEL_MANAGER.check_status(self.name(), key, self.serializer_backend())
 
@@ -251,18 +251,18 @@ class ModelResource(Resource):
         # ===== Check status ===== #
         status = self.check_model_status(data_key)
 
-        if status == ModelStatus.Running.value:
+        if status == ModelStatus.Running:
             if retrain:
                 return {
                     'message': f'Cannot cancel already {status} task. Try re-running when model is done',
                     'model-key': data_key
                 }
 
-            return {'message': status, 'model-key': data_key}
+            return {'message': status.value, 'model-key': data_key}
 
-        if status is not None and not retrain:
-            app.logger.info('Model already exists, and no retrain requested')
-            return {'message': status, 'model-key': data_key}
+        if (status is not None and status != ModelStatus.Failed) and not retrain:
+            ac.app.logger.info('Model already exists, and no retrain requested')
+            return {'message': status.value, 'model-key': data_key}
 
         key = self._make_executor_key(data_key)
 
@@ -272,7 +272,7 @@ class ModelResource(Resource):
 
         futures.add_done_callback(lambda u: self.done_callback(u, data_key, x, **akws))
 
-        app.logger.info(f'Successfully started training of {self.name()} using {x.shape[0]} observations')
+        ac.app.logger.info(f'Successfully started training of {self.name()} using {x.shape[0]} observations')
 
         return {'model-key': data_key}
 
@@ -287,12 +287,12 @@ class ModelResource(Resource):
         if status is None:
             return {'message': 'TrainingSession does not exist!'}, 400
 
-        if status != ModelStatus.Done.value:
-            return {'message': status}
+        if status != ModelStatus.Done:
+            return {'message': status.value}
 
         mod = self.load_model(MODEL_MANAGER, key)
 
-        app.logger.info(f'Predicting values using model {self.name()}')
+        ac.app.logger.info(f'Predicting values using model {self.name()}')
 
         return self.predict(mod, self.parse_data(args['x'], orient=args['orient']), orient=args['orient'])
 
@@ -304,11 +304,11 @@ class ModelResource(Resource):
 
         status = self.check_model_status(key)
 
-        if status != ModelStatus.Done.value:
-            return {'message': status}
+        if status != ModelStatus.Done:
+            return {'message': status.value}
 
         mod = self.load_model(MODEL_MANAGER, key)
-        return self.get_return({'message': 'DONE'}, mod)
+        return self.get_return({'message': ModelStatus.Done}, mod)
 
     @custom_login(auth_token.login_required)
     @custom_error
@@ -321,8 +321,8 @@ class ModelResource(Resource):
         if status is None:
             return {'message': 'TrainingSession does not exist!'}, 400
 
-        if status != ModelStatus.Done.value:
-            return {'message': status}
+        if status != ModelStatus.Done:
+            return {'message': status.value}
 
         model = self.load_model(MODEL_MANAGER, dkey)
         x = self.parse_data(args['x'])
@@ -339,7 +339,7 @@ class ModelResource(Resource):
 
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x))
 
-        app.logger.info(f'Started updating of model {self.name()} using {x.shape[0]} new observations')
+        ac.app.logger.info(f'Started updating of model {self.name()} using {x.shape[0]} new observations')
 
         return {'message': executor.futures._state(dkey)}
 
@@ -349,10 +349,10 @@ class ModelResource(Resource):
         args = get_parser.parse_args()
         key = args['model-key']
 
-        app.logger.info(f'Deleting model with key: {key}')
+        ac.app.logger.info(f'Deleting model with key: {key}')
 
         MODEL_MANAGER.delete(self.name(), key, self.serializer_backend())
 
-        app.logger.info(f'Successfully deleted model with key: {key}')
+        ac.app.logger.info(f'Successfully deleted model with key: {key}')
 
         return {'message': 'SUCCESS'}

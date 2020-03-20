@@ -2,9 +2,9 @@ from flask_restful.reqparse import RequestParser
 from pandas.util import hash_pandas_object
 from hashlib import sha256
 import pandas as pd
-from .app import app
 from werkzeug.exceptions import BadRequest
 from .model_managers import BaseModelManager
+from .app import ac
 
 
 BASE_REQ = RequestParser()
@@ -31,7 +31,7 @@ def custom_error(func):
             if isinstance(e, BadRequest):
                 raise e
 
-            app.logger.exception('Failed in task', e)
+            ac.app.logger.exception('Failed in task', e)
             return {'message': str(e)}, 500
 
     return wrap
@@ -40,7 +40,7 @@ def custom_error(func):
 def custom_login(auth):
     def wrap(func):
         def wrapp(*args, **kwargs):
-            if app.config['EXTERNAL_AUTH']:
+            if ac.app.config['EXTERNAL_AUTH']:
                 return func(*args, **kwargs)
 
             return auth(func)(*args, **kwargs)
@@ -69,7 +69,6 @@ def run_model(func, model, x, model_manager, name, key, backend, **kwargs):
     try:
         return func(model, x, **kwargs)
     except Exception as e:
-        app.logger.exception(f'Failed task with key: {key}', e)
+        ac.app.logger.exception(f'Failed task with key: {key}', e)
         model_manager.model_fail(name, key, backend)
         raise e
-

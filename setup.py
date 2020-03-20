@@ -24,6 +24,7 @@ setup(
         'onnx',
         'onnxruntime',
         'skl2onnx',
-        'dill'
+        'dill',
+        'pyyaml'
     ]
 )

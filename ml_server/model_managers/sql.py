@@ -6,19 +6,19 @@ from ..db.enums import ModelStatus
 
 
 class SQLModelManager(BaseModelManager):
-    def __init__(self, logger, session):
+    def __init__(self, session):
         """
         TrainingSession manager for SQL based storing.
         :param session: The session to use
         :type session: sqlalchemy.orm.Session
         """
 
-        super().__init__(logger)
+        super().__init__()
         self._session = session
 
     def close_all_running(self):
         sessions = self._session.query(TrainingSession).filter(
-            TrainingSession.status == ModelStatus.Running.value,
+            TrainingSession.status == ModelStatus.Running,
             TrainingSession.upd_by == platform.node()
         ).all()
 
@@ -29,26 +29,27 @@ class SQLModelManager(BaseModelManager):
 
         for s in sessions:
             s.end_time = datetime.now()
-            s.status = ModelStatus.Failed.value
+            s.status = ModelStatus.Failed
 
         self._session.commit()
 
         return
 
-    def pre_model_start(self, name, key, backend):
-        model = self._session.query(Model).filter(Model.name == name).one_or_none()
+    def _persist(self, schema):
+        model = self._session.query(Model).filter(Model.name == schema['model_name']).one_or_none()
         if not model:
-            model = Model(name=name)
+            model = Model(name=schema['model_name'])
             self._session.add(model)
 
             model.training_sessions = []
 
         model.training_sessions += [
             TrainingSession(
-                hash_key=key,
+                upd_by=schema['upd_by'],
+                hash_key=schema['hash_key'],
                 start_time=datetime.now(),
-                status=ModelStatus.Running,
-                backend=backend
+                status=schema['status'],
+                backend=schema['backend']
             )
         ]
 
@@ -56,80 +57,53 @@ class SQLModelManager(BaseModelManager):
 
         return self
 
-    def model_fail(self, name, key, backend):
+    def _update(self, schema):
         model = self._session.query(TrainingSession).filter(
-            TrainingSession.hash_key == key,
-            TrainingSession.status == ModelStatus.Running.value,
-            TrainingSession.backend == backend.value,
-            Model.name == name,
+            TrainingSession.hash_key == schema['hash_key'],
+            TrainingSession.status == ModelStatus.Running,
+            TrainingSession.backend == schema['backend'],
+            Model.name == schema['model_name'],
             TrainingSession.model_id == Model.id,
         ).one()  # type: TrainingSession
 
-        model.status = ModelStatus.Failed.value
-        model.end_time = datetime.now()
+        model.end_time = schema['end_time']
+        model.status = schema['status']
+        model.byte_string = schema['byte_string']
 
         self._session.commit()
 
         return self
 
-    def save(self, name, key, obj, backend):
-        model = self._session.query(TrainingSession).filter(
+    def _get_data(self, name, key, backend, status=None):
+        query = self._session.query(TrainingSession).filter(
             TrainingSession.hash_key == key,
-            TrainingSession.status == ModelStatus.Running.value,
-            TrainingSession.backend == backend.value,
+            TrainingSession.backend == backend,
             Model.name == name,
             TrainingSession.model_id == Model.id,
-        ).one()  # type: TrainingSession
+        )
 
-        model.status = ModelStatus.Done.value
-        model.byte_string = obj
-        model.end_time = datetime.now()
+        if isinstance(status, ModelStatus):
+            query = query.filter(TrainingSession.status == status)
+        elif status is None:
+            ...
+        else:
+            query = query.filter(TrainingSession.status.in_(status))
 
-        try:
-            self._session.commit()
-        except Exception as e:
-            self._logger.exception(f'Something went wrong trying to persist: {name}', e)
-            model.status = ModelStatus.Failed.value
-            model.byte_string = None
-
-            self._session.commit()
-
-        return self
-
-    def _load(self, name, key, backend):
-        model = self._session.query(TrainingSession).filter(
-            Model.name == name,
-            TrainingSession.model_id == Model.id,
-            TrainingSession.hash_key == key,
-            TrainingSession.backend == backend.value
-        ).order_by(TrainingSession.start_time.desc()).first()  # type: TrainingSession
+        model = query.order_by(TrainingSession.start_time.desc()).first()  # type: TrainingSession
 
         if model is None:
             return None
 
-        return model.byte_string
+        return model.to_schema()
 
     def delete(self, name, key, backend):
         model = self._session.query(TrainingSession).filter(
             Model.name == name,
             TrainingSession.model_id == Model.id,
             TrainingSession.hash_key == key,
-            TrainingSession.backend == backend.value
+            TrainingSession.backend == backend
         ).delete()
 
         self._session.commit()
 
         return self
-
-    def check_status(self, name, key, backend):
-        model = self._session.query(TrainingSession).filter(
-            Model.name == name,
-            TrainingSession.model_id == Model.id,
-            TrainingSession.hash_key == key,
-            TrainingSession.backend == backend.value
-        ).order_by(TrainingSession.start_time.desc()).first()  # type: TrainingSession
-
-        if model is not None:
-            return model.status
-
-        return None

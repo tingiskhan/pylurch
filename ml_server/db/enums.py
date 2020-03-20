@@ -11,3 +11,11 @@ class ModelStatus(Enum):
 class SerializerBackend(Enum):
     Dill = 'dill'
     ONNX = 'onnx'
+
+
+EXECUTOR_MAP = {
+    'RUNNING': ModelStatus.Running,
+    'FINISHED': ModelStatus.Done,
+    'FAILED': ModelStatus.Failed
+}
+

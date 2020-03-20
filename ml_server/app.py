@@ -7,19 +7,23 @@ import os
 from flask_httpauth import HTTPTokenAuth, HTTPBasicAuth
 import logging
 
-# ===== Setup service ===== #
-app = Flask(__name__)
+
+class AppContainer(object):
+    def __init__(self, app=None):
+        self.app = app
+
 
 # ===== Setup extensions ===== #
 api = Api()
 bcrypt = Bcrypt()
 executor = Executor()
 db = SQLAlchemy()
+ac = AppContainer()
 
 # ===== Model manager =====#
 from .model_managers import SQLModelManager
 
-MODEL_MANAGER = SQLModelManager(app.logger, db.session)
+MODEL_MANAGER = SQLModelManager(db.session)
 
 # ===== Auth ====== #
 auth_token = HTTPTokenAuth(scheme='Token')
@@ -27,7 +31,10 @@ auth_basic = HTTPBasicAuth()
 admin_auth = HTTPBasicAuth()
 
 
-def init_app(ignore_models=False):
+def init_app(name=__name__, ignore_models=False):
+    # ===== Setup service ===== #
+    app = Flask(name)
+
     # ===== Read config ====== #
     if 'ML_API_CONFIG' in os.environ:
         app.config.from_envvar('ML_API_CONFIG')
@@ -50,6 +57,8 @@ def init_app(ignore_models=False):
     bcrypt.__init__(app)
     executor.__init__(app)
     db.__init__(app)
+    ac.__init__(app)
+    MODEL_MANAGER.set_logger(app.logger)
 
     # ===== Logging ===== #
     app.logger.setLevel(logging.DEBUG)

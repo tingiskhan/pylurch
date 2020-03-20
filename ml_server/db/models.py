@@ -1,13 +1,14 @@
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy import Column, String, Boolean, DateTime, func, LargeBinary, Integer, ForeignKey, Numeric
+from sqlalchemy import Column, String, Boolean, DateTime, func, LargeBinary, Integer, ForeignKey, Enum
 from sqlalchemy.orm import relationship
-from ml_server.app import bcrypt, db, app
+from ..app import ac, bcrypt, db
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
 from .enums import ModelStatus, SerializerBackend
 from datetime import datetime
 import platform
 import onnxruntime as rt
 import dill
+from .schema import ModelSchema
 
 
 class MyMixin(object):
@@ -55,7 +56,7 @@ class User(MyMixin, Base):
         :rtype: basestring
         """
 
-        s = Serializer(app.config['SECRET_KEY'], expires_in=app.config.get('TOKEN_EXPIRATION'))
+        s = Serializer(ac.app.config['SECRET_KEY'], expires_in=ac.app.config.get('TOKEN_EXPIRATION'))
         return s.dumps({'id': self.id})
 
     def verify_password(self, password):
@@ -71,7 +72,7 @@ class User(MyMixin, Base):
 
     @staticmethod
     def verify_auth_token(token):
-        s = Serializer(app.config['SECRET_KEY'])
+        s = Serializer(ac.app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
         except SignatureExpired:
@@ -100,32 +101,38 @@ class TrainingSession(MyMixin, Base):
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False, default=func.now())
 
-    status = Column(String(255), nullable=False)
+    status = Column(Enum(ModelStatus), nullable=False)
 
-    backend = Column(String(255), nullable=False)
+    backend = Column(Enum(SerializerBackend), nullable=False)
     byte_string = Column(LargeBinary(), nullable=True)
 
     model = relationship(Model, back_populates='training_sessions', uselist=False)
     meta_data = relationship('MetaData')
 
-    def __init__(self, hash_key, start_time, status, backend, end_time=datetime.max, byte_string=None):
-        if status not in ModelStatus:
-            raise NotImplementedError(f'status must be in: {ModelStatus}')
-        if backend not in SerializerBackend:
-            raise NotImplementedError(f'Status must be in: {SerializerBackend}')
-
+    def __init__(self, hash_key, start_time, status, backend, end_time=datetime.max, byte_string=None, upd_by=None):
         self.hash_key = hash_key
         self.start_time = start_time
-        self.status = status.value
-        self.backend = backend.value
+        self.status = status
+        self.backend = backend
         self.end_time = end_time
         self.byte_string = byte_string
+        self.upd_by = upd_by
 
     def load(self):
         if self.backend == SerializerBackend.ONNX:
             return rt.InferenceSession(self.byte_string)
         elif self.backend == SerializerBackend.Dill:
             return dill.loads(self.byte_string)
+
+    def to_schema(self):
+        out = dict()
+
+        for f in (f_ for f_ in ModelSchema().fields if f_ != 'model_name'):
+            out[f] = getattr(self, f)
+
+        out['model_name'] = self.model.name
+
+        return out
 
 
 class MetaData(MyMixin, Base):
