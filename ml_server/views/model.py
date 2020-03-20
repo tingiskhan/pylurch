@@ -47,31 +47,33 @@ class ModelResource(Resource):
 
         raise NotImplementedError()
 
-    def done_callback(self, fut, key, x, **kwargs):
+    def done_callback(self, fut, fkey, dkey, x, **kwargs):
         """
         What to do when the callback is done.
         :param fut: The future
         :type fut: flask_executor.futures.Future
-        :param key: The key associated with the model
+        :param fkey: The key associated with the futures
+        :type fkey: str
+        :param dkey: The key associated with the model
+        :type dkey: str
         :param x: The data
         :type x: pandas.DataFrame
-        :type key: str
         """
         res = fut.result()
-        ac.app.logger.info(f'Successfully trained {key}, now trying to persist')
+        ac.app.logger.info(f'Successfully trained {dkey}, now trying to persist')
 
         try:
             bytestring = self.serialize(res, x)
 
             meta_data = self.add_metadata(res, **kwargs)
-            self.save_model(MODEL_MANAGER, key, bytestring)
+            self.save_model(MODEL_MANAGER, dkey, bytestring)
 
-            ac.app.logger.info(f'Successfully persisted {key}')
+            ac.app.logger.info(f'Successfully persisted {dkey}')
         except Exception as e:
-            ac.app.logger.exception(f'Failed persisting {key}', e)
-            MODEL_MANAGER.model_fail(self.name(), key, self.serializer_backend())
+            ac.app.logger.exception(f'Failed persisting {dkey}', e)
+            MODEL_MANAGER.model_fail(self.name(), fkey, self.serializer_backend())
         finally:
-            executor.futures.pop(key)
+            executor.futures.pop(fkey)
 
     def serialize(self, model, x, y=None):
         """
@@ -246,35 +248,35 @@ class ModelResource(Resource):
         model = self.make_model(**modkwargs)
 
         # ===== Generate model key ===== #
-        data_key = hash_series(x) if args['name'] is None else sha256((args['name']).encode()).hexdigest()
+        dkey = hash_series(x) if args['name'] is None else sha256((args['name']).encode()).hexdigest()
 
         # ===== Check status ===== #
-        status = self.check_model_status(data_key)
+        status = self.check_model_status(dkey)
 
         if status == ModelStatus.Running:
             if retrain:
                 return {
                     'message': f'Cannot cancel already {status} task. Try re-running when model is done',
-                    'model-key': data_key
+                    'model-key': dkey
                 }
 
-            return {'message': status.value, 'model-key': data_key}
+            return {'message': status.value, 'model-key': dkey}
 
         if (status is not None and status != ModelStatus.Failed) and not retrain:
             ac.app.logger.info('Model already exists, and no retrain requested')
-            return {'message': status.value, 'model-key': data_key}
+            return {'message': status.value, 'model-key': dkey}
 
-        key = self._make_executor_key(data_key)
+        key = self._make_executor_key(dkey)
 
         futures = executor.submit_stored(
-            key, run_model, self.fit, model, x, MODEL_MANAGER, self.name(), data_key, self.serializer_backend(), **akws
+            key, run_model, self.fit, model, x, MODEL_MANAGER, self.name(), dkey, self.serializer_backend(), **akws
         )
 
-        futures.add_done_callback(lambda u: self.done_callback(u, key, x, **akws))
+        futures.add_done_callback(lambda u: self.done_callback(u, fkey=key, dkey=dkey, x=x, **akws))
 
         ac.app.logger.info(f'Successfully started training of {self.name()} using {x.shape[0]} observations')
 
-        return {'model-key': data_key}
+        return {'model-key': dkey}
 
     @custom_login(auth_token.login_required)
     @custom_error
@@ -337,7 +339,7 @@ class ModelResource(Resource):
             key, run_model, self.update, model, x, MODEL_MANAGER, self.name(), dkey, self.serializer_backend(), **kwargs
         )
 
-        futures.add_done_callback(lambda u: self.done_callback(u, dkey, x))
+        futures.add_done_callback(lambda u: self.done_callback(u, fkey=key, dkey=dkey, x=x))
 
         ac.app.logger.info(f'Started updating of model {self.name()} using {x.shape[0]} new observations')
 
