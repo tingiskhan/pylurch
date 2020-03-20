@@ -25,6 +25,8 @@ setup(
         'onnxruntime',
         'skl2onnx',
         'dill',
-        'pyyaml'
+        'pyyaml',
+        'marshmallow',
+        'marshmallow-enum'
     ]
 )
