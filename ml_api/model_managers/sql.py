@@ -1,6 +1,6 @@
 from .base import BaseModelManager
 import platform
-from ..db.models import TrainingSession, Model
+from ..db.models import TrainingSession, Model, Base
 from datetime import datetime
 from ..db.enums import ModelStatus
 
@@ -15,6 +15,9 @@ class SQLModelManager(BaseModelManager):
 
         super().__init__()
         self._session = session
+
+    def initialize(self):
+        Base.metadata.create_all(self._session.bind)
 
     def close_all_running(self):
         sessions = self._session.query(TrainingSession).filter(
@@ -102,7 +105,7 @@ class SQLModelManager(BaseModelManager):
             TrainingSession.model_id == Model.id,
             TrainingSession.hash_key == key,
             TrainingSession.backend == backend
-        ).delete()
+        ).delete(synchronize_session='fetch')
 
         self._session.commit()
 

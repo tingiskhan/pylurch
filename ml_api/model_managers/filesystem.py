@@ -9,18 +9,23 @@ from ..db.schema import ModelSchema
 
 
 class FileModelManager(BaseModelManager):
-    def __init__(self, prefix):
+    def __init__(self, folder):
         """
         Defines a base class for model management.
-        :param prefix: The prefix for each model file
-        :type prefix: str
+        :param folder: The prefix for each model file
+        :type folder: str
         """
 
         super().__init__()
-        self._pref = prefix
+        self._pref = folder
+        self._ext = 'pkl'
+
+    def initialize(self):
+        if not os.path.exists(self._pref):
+            os.mkdir(self._pref)
 
     def close_all_running(self):
-        ymls = glob.glob(f'{self._pref}/*.yml', recursive=True)
+        ymls = glob.glob(f'{self._pref}/*.{self._ext}', recursive=True)
 
         running = 0
         for f in ymls:
@@ -44,11 +49,10 @@ class FileModelManager(BaseModelManager):
 
         return
 
-    @staticmethod
-    def _format_name(name, key, backend):
+    def _format_name(self, name, key, backend):
         first = f'{name}-{key}'
 
-        return f'{first}-{backend}.yml'
+        return f'{first}-{backend}.{self._ext}'
 
     def _get_data(self, name, key, backend, status=None):
         path = f'{self._pref}/{self._format_name(name, key, backend)}'

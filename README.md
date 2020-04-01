@@ -11,15 +11,14 @@ Please note that the solution is something I've developed in my own time and is 
 Some (key) differences between this library and the libraries usually seen on the Medium blogs:
 1. Abstracts away the fit/prediction logic for easier deployment of new models. 
 2. Provides database model for storing fitted models as binaries with meta data instead of files. But is possible to store as files.
-3. Allows using different backends for serializing the models, e.g. enables easy access to ONNX.
-4. Provides a simple database model for managing users, as well as some simple authentication.
+3. Allows using different backends for serializing the models, e.g. enables easy serialization to [ONNX](https://github.com/onnx/onnx).
 
 ## Install
-While you could install the library, the setup process is more aimed at providing a simple way of deploying using Docker. But, to install simply
+The library utilizes the `flask` framework and builds upon [flask-restful](https://flask-restful.readthedocs.io/en/latest/) for serving, but also uses other `flask` extensions like [flask-executor](https://flask-executor.readthedocs.io/en/latest/), and [flask-SQLAlchemy](https://flask-sqlalchemy.palletsprojects.com/en/2.x/). You install the library via
 ```
 pip install git+https://github.com/tingiskhan/ml-server
 ```
-There's also a Docker file included.
+There's also a Docker file included for serving the `example` model.
 
 ## Usage
 You use the API as you would any REST based API. Every model exposes the five endpoints:
@@ -33,13 +32,13 @@ You use the API as you would any REST based API. Every model exposes the five en
      7. `name`: Whether to name the data set, thus deriving the internal key from this name instead of the hash of the data.  
  2. `post`: Corresponds to sklearn's `predict`. **Parameters**: corresponds to i., iii. from 1. as well as `model-key`.       
  3. `patch`: Corresponds to updating an existing model using new data. Only applies to a few models in `sklearn`, and as such needs to be overridden by the user. **Parameters**: corresponds to i., ii., and iii. of 1, as well as `model-key`.
- 4. `delete`: Deletes all instances of a model. **Parameters**: Only `model-key` is required.
+ 4. `delete`: Deletes all sessions of a model with specified key. **Parameters**: Only `model-key` is required.
  5. `get`: Checks the status of the model, i.e. is it still training or can we use it for prediction. **Parameters**: Only `model-key`.
  
  ## Example
  A really trivial example follows below. It's assumed that you have started the server locally on port 5000, which is done as 
  ```python
- from ml_server.app import init_app
+ from example.app import init_app
 
 
 if __name__ == '__main__':
@@ -52,6 +51,7 @@ if __name__ == '__main__':
 import pandas as pd
 from requests import post, put
 import json
+from time import sleep
 
 address = 'http://localhost:5000/'
 

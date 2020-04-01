@@ -14,6 +14,15 @@ class BaseModelManager(object):
 
         self._logger = None
 
+    def initialize(self):
+        """
+        Initializes the model manager.
+        :return: Self
+        :rtype: BaseModelManager
+        """
+
+        return self
+
     def set_logger(self, logger):
         self._logger = logger
 

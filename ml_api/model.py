@@ -1,35 +1,12 @@
-from flask_restful import Resource
 import pandas as pd
-from ..utils import BASE_REQ, hash_series, custom_error, custom_login, run_model
-from ..app import executor, auth_token, ac, MODEL_MANAGER
+from .utils import hash_series, custom_error
 from hashlib import sha256
-from ..db.enums import ModelStatus, SerializerBackend, EXECUTOR_MAP
+from .db.enums import ModelStatus, SerializerBackend, EXECUTOR_MAP
 import numpy as np
+from .resource import BaseModelResource
 
 
-base_parser = BASE_REQ.copy()
-base_parser.add_argument('x', type=str, required=True, help='JSON of data')
-base_parser.add_argument('orient', type=str, help='The orientation of the JSON of the data', required=True)
-
-patch_parser = base_parser.copy()
-patch_parser.add_argument('y', type=str, help='The response variable')
-
-put_parser = patch_parser.copy()
-put_parser.add_argument('name', type=str, help='Name of the data set, used as key if provided')
-put_parser.add_argument('modkwargs', type=dict, help='Kwargs for model instantiation')
-put_parser.add_argument('algkwargs', type=dict, help='Kwargs for algorithm')
-put_parser.add_argument('retrain', type=str, help='Whether to retrain using other data', default='False')
-
-get_parser = BASE_REQ.copy()
-get_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
-
-patch_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
-
-post_parser = patch_parser.copy()
-post_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
-
-
-class ModelResource(Resource):
+class ModelResource(BaseModelResource):
     def make_model(self, **kwargs):
         """
         Creates the model to be used.
@@ -57,21 +34,22 @@ class ModelResource(Resource):
         :param x: The data
         :type x: pandas.DataFrame
         """
-        res = fut.result()
-        ac.app.logger.info(f'Successfully trained {key}, now trying to persist')
 
         try:
+            res = fut.result()
+            self.logger.info(f'Successfully trained {key}, now trying to persist')
+
             bytestring = self.serialize(res, x)
 
             meta_data = self.add_metadata(res, **kwargs)
-            self.save_model(MODEL_MANAGER, key, bytestring)
+            self.save_model(key, bytestring)
 
-            ac.app.logger.info(f'Successfully persisted {key}')
+            self.logger.info(f'Successfully persisted {key}')
         except Exception as e:
-            ac.app.logger.exception(f'Failed persisting {key}', e)
-            MODEL_MANAGER.model_fail(self.name(), key, self.serializer_backend())
+            self.logger.exception(f'Failed persisting {key}', e)
+            self.model_manager.model_fail(self.name(), key, self.serializer_backend())
         finally:
-            executor.futures.pop(self._make_executor_key(key))
+            self.executor.futures.pop(self._make_executor_key(key))
 
     def serialize(self, model, x, y=None):
         """
@@ -84,11 +62,9 @@ class ModelResource(Resource):
 
         raise NotImplementedError()
 
-    def save_model(self, model_manager, key, mod, meta_data=None):
+    def save_model(self, key, mod, meta_data=None):
         """
         Method for saving the model.
-        :param model_manager: The model manager
-        :type model_manager: ModelManager
         :param key: The key
         :type key: str
         :param mod: The model
@@ -99,19 +75,17 @@ class ModelResource(Resource):
         :rtype: None
         """
 
-        model_manager.save(self.name(), key, mod, self.serializer_backend())
+        self.model_manager.save(self.name(), key, mod, self.serializer_backend())
 
-    def load_model(self, model_manager, key):
+    def load_model(self, key):
         """
         Method for loading the model.
-        :param model_manager: The model manager
-        :type model_manager: ModelManager
         :param key: The key
         :type key: str
         :return: TrainingSession
         """
 
-        obj = model_manager.load(self.name(), key, self.serializer_backend())
+        obj = self.model_manager.load(self.name(), key, self.serializer_backend())
 
         return self._load(obj)
 
@@ -176,6 +150,26 @@ class ModelResource(Resource):
 
         return {'y': pd.DataFrame(res, index=x.index, columns=['y']).to_json(orient=orient)}
 
+    def run_model(self, func, model, x, key, **kwargs):
+        """
+        Utility function
+        :param func: The function to apply
+        :param model: The model
+        :param x: The data
+        :param name: The name of the model
+        :param key: The key
+        :return:
+        """
+
+        self.model_manager.pre_model_start(self.name(), key, self.serializer_backend())
+
+        try:
+            return func(model, x, **kwargs)
+        except Exception as e:
+            self.logger.exception(f'Failed task with key: {key}', e)
+            self.model_manager.model_fail(self.name(), key, self.serializer_backend())
+            raise e
+
     def parse_data(self, data, **kwargs):
         """
         Method for parsing data.
@@ -198,12 +192,12 @@ class ModelResource(Resource):
         :rtype: ModelStatus
         """
 
-        running_in_executor = executor.futures._state(self._make_executor_key(key))
+        running_in_executor = self.executor.futures._state(self._make_executor_key(key))
 
         if running_in_executor:
             return EXECUTOR_MAP[running_in_executor]
 
-        return MODEL_MANAGER.check_status(self.name(), key, self.serializer_backend())
+        return self.model_manager.check_status(self.name(), key, self.serializer_backend())
 
     def name(self):
         """
@@ -225,11 +219,8 @@ class ModelResource(Resource):
 
         return self
 
-    @custom_login(auth_token.login_required)
     @custom_error
-    def put(self):
-        args = put_parser.parse_args()
-
+    def _put(self, **args):
         # ===== Get data ===== #
         orient = args['orient']
         x = self.parse_data(args['x'], orient=orient)
@@ -241,7 +232,7 @@ class ModelResource(Resource):
         akws = args['algkwargs'] or dict()
 
         if args['y'] is not None:
-            akws['y'] = self.parse_data(args['y'])
+            akws['y'] = self.parse_data(args['y'], orient=orient)
 
         model = self.make_model(**modkwargs)
 
@@ -261,25 +252,20 @@ class ModelResource(Resource):
             return {'message': status.value, 'model-key': dkey}
 
         if (status is not None and status != ModelStatus.Failed) and not retrain:
-            ac.app.logger.info('Model already exists, and no retrain requested')
+            self.logger.info('Model already exists, and no retrain requested')
             return {'message': status.value, 'model-key': dkey}
 
         key = self._make_executor_key(dkey)
 
-        futures = executor.submit_stored(
-            key, run_model, self.fit, model, x, MODEL_MANAGER, self.name(), dkey, self.serializer_backend(), **akws
-        )
-
+        futures = self.executor.submit_stored(key, self.run_model, self.fit, model, x, dkey, **akws)
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x=x, **akws))
 
-        ac.app.logger.info(f'Successfully started training of {self.name()} using {x.shape[0]} observations')
+        self.logger.info(f'Successfully started training of {self.name()} using {x.shape[0]} observations')
 
         return {'model-key': dkey}
 
-    @custom_login(auth_token.login_required)
     @custom_error
-    def post(self):
-        args = post_parser.parse_args()
+    def _post(self, **args):
         key = args['model-key']
 
         status = self.check_model_status(key)
@@ -290,30 +276,24 @@ class ModelResource(Resource):
         if status != ModelStatus.Done:
             return {'message': status.value}
 
-        mod = self.load_model(MODEL_MANAGER, key)
+        mod = self.load_model(key)
 
-        ac.app.logger.info(f'Predicting values using model {self.name()}')
+        self.logger.info(f'Predicting values using model {self.name()}')
 
         return self.predict(mod, self.parse_data(args['x'], orient=args['orient']), orient=args['orient'])
 
-    @custom_login(auth_token.login_required)
     @custom_error
-    def get(self):
-        args = get_parser.parse_args()
-        key = args['model-key']
-
+    def _get(self, key):
         status = self.check_model_status(key)
 
         if status != ModelStatus.Done:
             return {'message': status.value}
 
-        mod = self.load_model(MODEL_MANAGER, key)
+        mod = self.load_model(key)
         return self.get_return({'message': ModelStatus.Done}, mod)
 
-    @custom_login(auth_token.login_required)
     @custom_error
-    def patch(self):
-        args = patch_parser.parse_args()
+    def _patch(self, **args):
         dkey = args['model-key']
 
         status = self.check_model_status(dkey)
@@ -324,7 +304,7 @@ class ModelResource(Resource):
         if status != ModelStatus.Done:
             return {'message': status.value}
 
-        model = self.load_model(MODEL_MANAGER, dkey)
+        model = self.load_model(dkey)
         x = self.parse_data(args['x'])
 
         kwargs = dict()
@@ -333,26 +313,19 @@ class ModelResource(Resource):
 
         key = self._make_executor_key(dkey)
 
-        futures = executor.submit_stored(
-            key, run_model, self.update, model, x, MODEL_MANAGER, self.name(), dkey, self.serializer_backend(), **kwargs
-        )
-
+        futures = self.executor.submit_stored(key, self.run_model, self.update, model, x, dkey, **kwargs)
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x=x))
 
-        ac.app.logger.info(f'Started updating of model {self.name()} using {x.shape[0]} new observations')
+        self.logger.info(f'Started updating of model {self.name()} using {x.shape[0]} new observations')
 
-        return {'message': executor.futures._state(dkey)}
+        return {'message': self.executor.futures._state(dkey)}
 
-    @custom_login(auth_token.login_required)
     @custom_error
-    def delete(self):
-        args = get_parser.parse_args()
-        key = args['model-key']
+    def _delete(self, key):
+        self.logger.info(f'Deleting model with key: {key}')
 
-        ac.app.logger.info(f'Deleting model with key: {key}')
+        self.model_manager.delete(self.name(), key, self.serializer_backend())
 
-        MODEL_MANAGER.delete(self.name(), key, self.serializer_backend())
-
-        ac.app.logger.info(f'Successfully deleted model with key: {key}')
+        self.logger.info(f'Successfully deleted model with key: {key}')
 
         return {'message': 'SUCCESS'}

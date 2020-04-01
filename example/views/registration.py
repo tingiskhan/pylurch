@@ -1,5 +1,5 @@
 from flask_restful import Resource
-from ..utils import BASE_REQ
+from ml_api.utils import BASE_REQ
 from ..db.models import User
 from ..app import db, auth_basic
 from flask import request

@@ -1,8 +1,8 @@
-from .model import ModelResource
+from ml_api import ModelResource
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.linear_model import LinearRegression, LogisticRegressionCV
-from ..db.enums import SerializerBackend
+from ml_api.db.enums import SerializerBackend
 
 
 class LinearRegressionView(ModelResource):

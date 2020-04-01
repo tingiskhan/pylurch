@@ -1,29 +1,36 @@
 from flask import Flask
-from flask_restful import Api
-from flask_executor import Executor
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 import os
 from flask_httpauth import HTTPTokenAuth, HTTPBasicAuth
 import logging
-
-
-class AppContainer(object):
-    def __init__(self, app=None):
-        self.app = app
+from ml_api import MachineLearningApi
+from ml_api.model_managers import SQLModelManager
 
 
 # ===== Setup extensions ===== #
-api = Api()
-bcrypt = Bcrypt()
-executor = Executor()
-db = SQLAlchemy()
-ac = AppContainer()
+app = Flask(__name__)
+
+# ===== Read config ====== #
+if 'ML_API_CONFIG' in os.environ:
+    app.config.from_envvar('ML_API_CONFIG')
+
+sqlite = 'sqlite:///debug-database.db?check_same_thread=false'
+
+if not app.config.get('SECRET_KEY'):
+    app.config['SECRET_KEY'] = os.urandom(24)
+
+app.config.setdefault('SQLALCHEMY_DATABASE_URI', os.environ.get('DB_CONNSTRING') or sqlite)
+app.config.setdefault('EXECUTOR_PROPAGATE_EXCEPTIONS', True)
+app.config.setdefault('PRODUCTION', os.environ.get('PRODUCTION') or False)
+app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
+
+bcrypt = Bcrypt(app)
+db = SQLAlchemy(app)
 
 # ===== Model manager =====#
-from .model_managers import SQLModelManager
-
-MODEL_MANAGER = SQLModelManager(db.session)
+model_manager = SQLModelManager(db.session)
+api = MachineLearningApi(app=app, model_manager=model_manager)
 
 # ===== Auth ====== #
 auth_token = HTTPTokenAuth(scheme='Token')
@@ -31,34 +38,9 @@ auth_basic = HTTPBasicAuth()
 admin_auth = HTTPBasicAuth()
 
 
-def init_app(name=__name__, ignore_models=False):
-    # ===== Setup service ===== #
-    app = Flask(name)
-
-    # ===== Read config ====== #
-    if 'ML_API_CONFIG' in os.environ:
-        app.config.from_envvar('ML_API_CONFIG')
-
-    sqlite = 'sqlite:///debug-database.db?check_same_thread=false'
-
-    if not app.config.get('SECRET_KEY'):
-        app.config['SECRET_KEY'] = os.urandom(24)
-
-    app.config.setdefault('SQLALCHEMY_DATABASE_URI', os.environ.get('DB_CONNSTRING') or sqlite)
-    app.config.setdefault('TOKEN_EXPIRATION', 12 * 10 * 60)
-    app.config.setdefault('EXECUTOR_PROPAGATE_EXCEPTIONS', True)
-    app.config.setdefault('PRODUCTION', os.environ.get('PRODUCTION') or False)
-    app.config.setdefault('EXTENSION', 'pkl')
-    app.config.setdefault('EXTERNAL_AUTH', os.environ.get('EXTERNAL_AUTH') or True)
-    app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
-
+def init_app():
     # ===== Initialize everything ===== #
-    api.__init__(app)
-    bcrypt.__init__(app)
-    executor.__init__(app)
-    db.__init__(app)
-    ac.__init__(app)
-    MODEL_MANAGER.set_logger(app.logger)
+    model_manager.set_logger(app.logger)
 
     # ===== Logging ===== #
     app.logger.setLevel(logging.DEBUG)
@@ -82,8 +64,6 @@ def init_app(name=__name__, ignore_models=False):
 
         app.logger.info('Successfully created an admin user')
 
-    # ===== Define model manager ====== #
-    MODEL_MANAGER.close_all_running()
     app.logger.info(f'Application is configured as: {"production" if app.config["PRODUCTION"] else "debug"}')
 
     # ===== Authorization logic ===== #
@@ -114,19 +94,15 @@ def init_app(name=__name__, ignore_models=False):
     api.add_resource(HelloWorld, '/hello-world')
     api.add_resource(AdminView, '/admin')
 
-    if not ignore_models:
-        api.add_resource(LinearRegressionView, '/linreg')
-        api.add_resource(LogisticRegressionView, '/logreg')
+    api.add_resource(LinearRegressionView, '/linreg')
+    api.add_resource(LogisticRegressionView, '/logreg')
 
-    if not app.config['EXTERNAL_AUTH']:
-        from .views.registration import LoginView, RegistrationView
+    from .views.registration import LoginView, RegistrationView
 
-        api.add_resource(LoginView, '/login')
-        api.add_resource(RegistrationView, '/register')
+    api.add_resource(LoginView, '/login')
+    api.add_resource(RegistrationView, '/register')
 
-        app.logger.info('Registering login views')
-    else:
-        app.logger.info('Using external authentication')
+    app.logger.info('Registering login views')
 
     app.logger.info('Finished setting up application')
 
