@@ -305,11 +305,11 @@ class ModelResource(BaseModelResource):
             return {'message': status.value}
 
         model = self.load_model(dkey)
-        x = self.parse_data(args['x'])
+        x = self.parse_data(args['x'], orient=args['orient'])
 
         kwargs = dict()
         if 'y' in args:
-            kwargs['y'] = self.parse_data(args['y'])
+            kwargs['y'] = self.parse_data(args['y'], orient=args['orient'])
 
         key = self._make_executor_key(dkey)
 
