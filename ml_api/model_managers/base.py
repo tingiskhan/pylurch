@@ -150,10 +150,12 @@ class BaseModelManager(object):
         :return: onnxruntime.InferenceSession
         """
 
-        bytestring = self._get_data(name, key, backend, status=ModelStatus.Done)['byte_string']
+        saved_model = self._get_data(name, key, backend, status=ModelStatus.Done)
 
-        if bytestring is None:
+        if saved_model is None:
             return None
+
+        bytestring = saved_model['byte_string']
 
         if backend == SerializerBackend.ONNX:
             return rt.InferenceSession(bytestring)
