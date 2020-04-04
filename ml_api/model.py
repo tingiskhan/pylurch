@@ -36,6 +36,10 @@ class ModelResource(BaseModelResource):
         """
 
         res = fut.result()
+
+        if res is None:
+            return
+
         self.logger.info(f'Successfully trained {key}, now trying to persist')
 
         try:
@@ -86,6 +90,9 @@ class ModelResource(BaseModelResource):
         """
 
         obj = self.model_manager.load(self.name(), key, self.serializer_backend())
+
+        if obj is None:
+            return None
 
         return self._load(obj)
 
@@ -156,19 +163,19 @@ class ModelResource(BaseModelResource):
         :param func: The function to apply
         :param model: The model
         :param x: The data
-        :param name: The name of the model
         :param key: The key
         :return:
         """
 
         self.model_manager.pre_model_start(self.name(), key, self.serializer_backend())
+        self.logger.info(f'Starting training of {self.name()} using {x.shape[0]} observations')
 
         try:
             return func(model, x, **kwargs)
         except Exception as e:
             self.logger.exception(f'Failed task with key: {key}', e)
             self.model_manager.model_fail(self.name(), key, self.serializer_backend())
-            raise e
+            return None
 
     def parse_data(self, data, **kwargs):
         """
@@ -260,8 +267,6 @@ class ModelResource(BaseModelResource):
         futures = self.executor.submit_stored(key, self.run_model, self.fit, model, x, dkey, **akws)
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x=x, **akws))
 
-        self.logger.info(f'Successfully started training of {self.name()} using {x.shape[0]} observations')
-
         return {'model-key': dkey}
 
     @custom_error
@@ -277,6 +282,9 @@ class ModelResource(BaseModelResource):
             return {'message': status.value}
 
         mod = self.load_model(key)
+
+        if mod is None:
+            return {'message': 'No such model!'}, 400
 
         self.logger.info(f'Predicting values using model {self.name()}')
 
