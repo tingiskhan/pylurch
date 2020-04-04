@@ -35,10 +35,10 @@ class ModelResource(BaseModelResource):
         :type x: pandas.DataFrame
         """
 
-        try:
-            res = fut.result()
-            self.logger.info(f'Successfully trained {key}, now trying to persist')
+        res = fut.result()
+        self.logger.info(f'Successfully trained {key}, now trying to persist')
 
+        try:
             bytestring = self.serialize(res, x)
 
             meta_data = self.add_metadata(res, **kwargs)
