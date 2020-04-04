@@ -267,7 +267,7 @@ class ModelResource(BaseModelResource):
         futures = self.executor.submit_stored(key, self.run_model, self.fit, model, x, dkey, **akws)
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x=x, **akws))
 
-        return {'model-key': dkey}
+        return {'model-key': dkey, 'message': self.check_model_status(key)}
 
     @custom_error
     def _post(self, **args):
