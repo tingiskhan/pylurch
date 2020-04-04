@@ -199,11 +199,6 @@ class ModelResource(BaseModelResource):
         :rtype: ModelStatus
         """
 
-        running_in_executor = self.executor.futures._state(self._make_executor_key(key))
-
-        if running_in_executor:
-            return EXECUTOR_MAP[running_in_executor]
-
         return self.model_manager.check_status(self.name(), key, self.serializer_backend())
 
     def name(self):
