@@ -14,7 +14,7 @@ Some (key) differences between this library and the libraries usually seen on th
 3. Allows using different backends for serializing the models, e.g. enables easy serialization to [ONNX](https://github.com/onnx/onnx).
 
 ## Install
-The library utilizes the [flask](https://flask.palletsprojects.com/en/1.1.x/) framework and builds upon [flask-restful](https://flask-restful.readthedocs.io/en/latest/) for serving, but also uses other `flask` extensions like [flask-executor](https://flask-executor.readthedocs.io/en/latest/), and [flask-SQLAlchemy](https://flask-sqlalchemy.palletsprojects.com/en/2.x/). You install the library via
+The library utilizes the [flask](https://flask.palletsprojects.com/en/1.1.x/) framework and builds upon [flask-restful](https://flask-restful.readthedocs.io/en/latest/) for serving, but also uses extensions like [flask-executor](https://flask-executor.readthedocs.io/en/latest/), and [flask-SQLAlchemy](https://flask-sqlalchemy.palletsprojects.com/en/2.x/). You install the library via
 ```
 pip install git+https://github.com/tingiskhan/ml-server
 ```
