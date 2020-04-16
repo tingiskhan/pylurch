@@ -248,25 +248,25 @@ class ModelResource(BaseModelResource):
             if retrain:
                 return {
                     'message': f'Cannot cancel already {status} task. Try re-running when model is done',
-                    'model-key': dkey
+                    'model_key': dkey
                 }
 
-            return {'message': status.value, 'model-key': dkey}
+            return {'message': status.value, 'model_key': dkey}
 
         if (status is not None and status != ModelStatus.Failed) and not retrain:
             self.logger.info('Model already exists, and no retrain requested')
-            return {'message': status.value, 'model-key': dkey}
+            return {'message': status.value, 'model_key': dkey}
 
         key = self._make_executor_key(dkey)
 
         futures = self.executor.submit_stored(key, self.run_model, self.fit, model, x, dkey, **akws)
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x=x, **akws))
 
-        return {'model-key': dkey}
+        return {'model_key': dkey}
 
     @custom_error
     def _post(self, **args):
-        key = args['model-key']
+        key = args['model_key']
 
         status = self.check_model_status(key)
 
@@ -286,18 +286,18 @@ class ModelResource(BaseModelResource):
         return self.predict(mod, self.parse_data(args['x'], orient=args['orient']), orient=args['orient'])
 
     @custom_error
-    def _get(self, key):
-        status = self.check_model_status(key)
+    def _get(self, model_key):
+        status = self.check_model_status(model_key)
 
         if status != ModelStatus.Done:
             return {'message': status.value}
 
-        mod = self.load_model(key)
+        mod = self.load_model(model_key)
         return self.get_return({'message': ModelStatus.Done}, mod)
 
     @custom_error
     def _patch(self, **args):
-        dkey = args['model-key']
+        dkey = args['model_key']
 
         status = self.check_model_status(dkey)
 
@@ -324,11 +324,11 @@ class ModelResource(BaseModelResource):
         return {'message': self.executor.futures._state(dkey)}
 
     @custom_error
-    def _delete(self, key):
-        self.logger.info(f'Deleting model with key: {key}')
+    def _delete(self, model_key):
+        self.logger.info(f'Deleting model with key: {model_key}')
 
-        self.model_manager.delete(self.name(), key, self.serializer_backend())
+        self.model_manager.delete(self.name(), model_key, self.serializer_backend())
 
-        self.logger.info(f'Successfully deleted model with key: {key}')
+        self.logger.info(f'Successfully deleted model with key: {model_key}')
 
         return {'message': 'SUCCESS'}

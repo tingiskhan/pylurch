@@ -22,7 +22,7 @@ There's also a Docker file included for serving the `example` model.
 
 ## Usage
 You use the API as you would any REST based API. Every model exposes the five endpoints:
- 1. `put`: Corresponds to sklearn's `fit`. Returns a JSON with `model-key`, corresponding to the internal name of the model. **Parameters**:
+ 1. `put`: Corresponds to sklearn's `fit`. Returns a JSON with `model_key`, corresponding to the internal name of the model. **Parameters**:
      1. `x`: Same as in `sklearn`, a `pandas.DataFrame`. Sent as JSON
      2. `y`: Same as in `sklearn`, depending on the model it's either a `pandas.Series` or `pandas.DataFrame`. Sent as JSON.
      3. `orient`: The orientation of the `DataFrame`s, i.e. the parameter `orient` in `pandas.DataFrame.to_json`
@@ -30,10 +30,10 @@ You use the API as you would any REST based API. Every model exposes the five en
      5. `algkwargs`: Any `kwargs` passed to `fit` method.
      6. `retrain`: Whether to initiate a new training of the model if one already exists.
      7. `name`: Whether to name the data set, thus deriving the internal key from this name instead of the hash of the data.  
- 2. `post`: Corresponds to sklearn's `predict`. **Parameters**: corresponds to i., iii. from 1. as well as `model-key`.       
- 3. `patch`: Corresponds to updating an existing model using new data. Only applies to a few models in `sklearn`, and as such needs to be overridden by the user. **Parameters**: corresponds to i., ii., and iii. of 1, as well as `model-key`.
- 4. `delete`: Deletes all sessions of a model with specified key. **Parameters**: Only `model-key` is required.
- 5. `get`: Checks the status of the model, i.e. is it still training or can we use it for prediction. **Parameters**: Only `model-key`.
+ 2. `post`: Corresponds to sklearn's `predict`. **Parameters**: corresponds to i., iii. from 1. as well as `model_key`.       
+ 3. `patch`: Corresponds to updating an existing model using new data. Only applies to a few models in `sklearn`, and as such needs to be overridden by the user. **Parameters**: corresponds to i., ii., and iii. of 1, as well as `model_key`.
+ 4. `delete`: Deletes all sessions of a model with specified key. **Parameters**: Only `model_key` is required.
+ 5. `get`: Checks the status of the model, i.e. is it still training or can we use it for prediction. **Parameters**: Only `model_key`.
  
  ## Example
  A really trivial example follows below. It's assumed that you have started the server locally on port 5000, which is done as 
@@ -83,7 +83,7 @@ sleep(10)
 pred = {
     'x': x.to_json(orient=orient),
     'orient': orient,
-    'model-key': resp['model-key']
+    'model_key': resp['model_key']
 }
 
 predict = post(address + 'logreg', headers=headers, json=pred)

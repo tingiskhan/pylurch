@@ -19,13 +19,13 @@ put_parser.add_argument('retrain', type=str, help='Whether to retrain using othe
 
 # ===== Get parser ====== #
 get_parser = BASE_REQ.copy()
-get_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
+get_parser.add_argument('model_key', type=str, required=True, help='Key of the model')
 
-patch_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
+patch_parser.add_argument('model_key', type=str, required=True, help='Key of the model')
 
 # ===== Post parser ====== #
 post_parser = patch_parser.copy()
-post_parser.add_argument('model-key', type=str, required=True, help='Key of the model')
+post_parser.add_argument('model_key', type=str, required=True, help='Key of the model')
 
 
 class BaseModelResource(Resource):
