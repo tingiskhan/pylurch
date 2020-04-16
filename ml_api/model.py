@@ -292,8 +292,7 @@ class ModelResource(BaseModelResource):
         if status != ModelStatus.Done:
             return {'message': status.value}
 
-        mod = self.load_model(model_key)
-        return self.get_return({'message': ModelStatus.Done}, mod)
+        return {'message': ModelStatus.Done}
 
     @custom_error
     def _patch(self, **args):
