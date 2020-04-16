@@ -289,10 +289,7 @@ class ModelResource(BaseModelResource):
     def _get(self, model_key):
         status = self.check_model_status(model_key)
 
-        if status != ModelStatus.Done:
-            return {'message': status.value}
-
-        return {'message': ModelStatus.Done}
+        return {'message': None if status is None else status.value}
 
     @custom_error
     def _patch(self, **args):
