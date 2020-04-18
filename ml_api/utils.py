@@ -1,11 +1,7 @@
-from flask_restful.reqparse import RequestParser
 from pandas.util import hash_pandas_object
 from hashlib import sha256
 import pandas as pd
 from werkzeug.exceptions import BadRequest
-
-
-BASE_REQ = RequestParser()
 
 
 def hash_series(*args):
