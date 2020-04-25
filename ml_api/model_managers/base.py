@@ -3,6 +3,7 @@ from ..db.enums import SerializerBackend, ModelStatus
 import dill
 import platform
 from datetime import datetime
+from ..db.schema import ModelSchema
 
 
 # TODO: Perhaps use YAML as base to streamline?
@@ -13,6 +14,7 @@ class BaseModelManager(object):
         """
 
         self._logger = None
+        self._ms = ModelSchema()
 
     def initialize(self):
         """
@@ -71,7 +73,7 @@ class BaseModelManager(object):
         :rtype: BaseModelManager
         """
 
-        data = self._get_data(name, key, backend, status=ModelStatus.Running)
+        data = self._get_session(name, key, backend, status=ModelStatus.Running)
 
         data['status'] = ModelStatus.Failed
         data['end_time'] = datetime.now()
@@ -80,9 +82,9 @@ class BaseModelManager(object):
 
         return self
 
-    def _get_data(self, name, key, backend, status=None):
+    def _get_session(self, name, key, backend, status=None):
         """
-        Get the data pertaining to the model.
+        Get the given session of model with `name` by ways of `key`. Returns the session represented as a dictionary
         :param name: The name of the model
         :type name: str
         :param key: The hash key
@@ -131,7 +133,7 @@ class BaseModelManager(object):
         :rtype: str
         """
 
-        schema = self._get_data(name, key, backend)
+        schema = self._get_session(name, key, backend)
 
         if schema is None:
             return None
@@ -150,7 +152,7 @@ class BaseModelManager(object):
         :return: onnxruntime.InferenceSession
         """
 
-        saved_model = self._get_data(name, key, backend, status=ModelStatus.Done)
+        saved_model = self._get_session(name, key, backend, status=ModelStatus.Done)
 
         if saved_model is None:
             return None
@@ -162,7 +164,7 @@ class BaseModelManager(object):
         elif backend == SerializerBackend.Dill:
             return dill.loads(bytestring)
 
-    def save(self, name, key, obj, backend):
+    def save(self, name, key, obj, backend, meta_data=None):
         """
         Save the model.
         :param name: The name of the model to save
@@ -173,15 +175,20 @@ class BaseModelManager(object):
         :type obj: bytes
         :param backend: The backend to use
         :type backend: SerializerBackend
+        :param meta_data: Meta data to add to the session
+        :type meta_data: dict[str, str]
         :return: None
         :rtype: None
         """
 
-        ms = self._get_data(name, key, backend, status=ModelStatus.Running)
+        ms = self._get_session(name, key, backend, status=ModelStatus.Running)
 
         ms['status'] = ModelStatus.Done
         ms['end_time'] = datetime.now()
         ms['byte_string'] = obj
+
+        if meta_data is not None:
+            ms['meta_data'] = meta_data
 
         self._update(ms)
 

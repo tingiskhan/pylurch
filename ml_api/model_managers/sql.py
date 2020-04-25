@@ -1,6 +1,6 @@
 from .base import BaseModelManager
 import platform
-from ..db.models import TrainingSession, Model, Base
+from ..db.models import TrainingSession, Model, Base, MetaData
 from datetime import datetime
 from ..db.enums import ModelStatus
 
@@ -61,7 +61,7 @@ class SQLModelManager(BaseModelManager):
         return self
 
     def _update(self, schema):
-        model = self._session.query(TrainingSession).filter(
+        session = self._session.query(TrainingSession).filter(
             TrainingSession.hash_key == schema['hash_key'],
             TrainingSession.status == ModelStatus.Running,
             TrainingSession.backend == schema['backend'],
@@ -69,15 +69,20 @@ class SQLModelManager(BaseModelManager):
             TrainingSession.model_id == Model.id,
         ).one()  # type: TrainingSession
 
-        model.end_time = schema['end_time']
-        model.status = schema['status']
-        model.byte_string = schema['byte_string']
+        session.end_time = schema['end_time']
+        session.status = schema['status']
+        session.byte_string = schema['byte_string']
+
+        if 'meta_data' in schema:
+            session.meta_data = [
+                MetaData(key=k, value=v) for k, v in schema['meta_data'].items()
+            ]
 
         self._session.commit()
 
         return self
 
-    def _get_data(self, name, key, backend, status=None):
+    def _get_session(self, name, key, backend, status=None):
         query = self._session.query(TrainingSession).filter(
             TrainingSession.hash_key == key,
             TrainingSession.backend == backend,
@@ -100,7 +105,7 @@ class SQLModelManager(BaseModelManager):
         return model.to_schema()
 
     def delete(self, name, key, backend):
-        model = self._session.query(TrainingSession).filter(
+        deleted = self._session.query(TrainingSession).filter(
             Model.name == name,
             TrainingSession.model_id == Model.id,
             TrainingSession.hash_key == key,

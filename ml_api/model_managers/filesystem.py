@@ -54,7 +54,7 @@ class FileModelManager(BaseModelManager):
 
         return f'{first}-{backend}.{self._ext}'
 
-    def _get_data(self, name, key, backend, status=None):
+    def _get_session(self, name, key, backend, status=None):
         path = f'{self._pref}/{self._format_name(name, key, backend)}'
 
         if not os.path.exists(path):

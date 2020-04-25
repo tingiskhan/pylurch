@@ -82,3 +82,7 @@ class MetaData(MyMixin, Base):
 
     key = Column(String(255), nullable=False)
     value = Column(String(255), nullable=False)
+
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value

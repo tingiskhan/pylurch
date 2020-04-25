@@ -25,6 +25,11 @@ class LinearRegressionView(ModelResource):
     def name(self):
         return 'linear-regression'
 
+    def add_metadata(self, model, **kwargs):
+        return {
+            'score': model.score(kwargs['x'], kwargs['y'])
+        }
+
 
 class LogisticRegressionView(LinearRegressionView):
     def name(self):

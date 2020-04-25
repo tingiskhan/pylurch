@@ -6,7 +6,7 @@ def _get_version():
     folder = os.path.dirname(os.path.realpath(__file__))
 
     with open(os.path.join(folder, 'ml_api/__init__.py'), 'r') as f:
-        versionline = next(l for l in f.readlines() if l.strip().startswith('__version__'))
+        versionline = next(line for line in f.readlines() if line.strip().startswith('__version__'))
         version = versionline.split('=')[-1].strip().replace('\'', '')
 
     return version

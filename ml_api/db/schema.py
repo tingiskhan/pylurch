@@ -24,4 +24,6 @@ class ModelSchema(Schema):
     status = EnumField(ModelStatus, required=True)
     backend = EnumField(SerializerBackend, required=True)
 
+    meta_data = f.Dict(f.String(), f.String(), required=False)
+
     byte_string = BytesField(required=False)

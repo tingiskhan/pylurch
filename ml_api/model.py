@@ -1,7 +1,7 @@
 import pandas as pd
 from .utils import hash_series, custom_error
 from hashlib import sha256
-from .db.enums import ModelStatus, SerializerBackend, EXECUTOR_MAP
+from .db.enums import ModelStatus, SerializerBackend
 import numpy as np
 from .resource import BaseModelResource
 
@@ -45,8 +45,8 @@ class ModelResource(BaseModelResource):
         try:
             bytestring = self.serialize(res, x)
 
-            meta_data = self.add_metadata(res, **kwargs)
-            self.save_model(key, bytestring)
+            meta_data = self.add_metadata(res, x=x, **kwargs)
+            self.save_model(key, bytestring, meta_data=meta_data)
 
             self.logger.info(f'Successfully persisted {key}')
         except Exception as e:
@@ -74,12 +74,12 @@ class ModelResource(BaseModelResource):
         :param mod: The model
         :type mod: bytes
         :param meta_data: Whether to add any metadata associated with the model
-        :type meta_data: pd.Series
+        :type meta_data: dict[str, str]
         :return: Nothing
         :rtype: None
         """
 
-        self.model_manager.save(self.name(), key, mod, self.serializer_backend())
+        self.model_manager.save(self.name(), key, mod, self.serializer_backend(), meta_data=meta_data)
 
     def load_model(self, key):
         """
@@ -215,11 +215,11 @@ class ModelResource(BaseModelResource):
         Allows user to add string meta data associated with the model. Is called when model is done.
         :param model: The instantiated model.
         :param kwargs: The key worded arguments associated with the model
-        :return: A pandas.Series indexed with key -> value
-        :rtype: pandas.Series
+        :return: A dictionary
+        :rtype: dict[str, str]
         """
 
-        return self
+        return dict()
 
     @custom_error
     def _put(self, **args):
