@@ -3,11 +3,14 @@ from flask_restful.reqparse import RequestParser
 
 # ===== Base parser ===== #
 base_parser = RequestParser()
-base_parser.add_argument('x', type=str, required=True, help='JSON of data')
-base_parser.add_argument('orient', type=str, help='The orientation of the JSON of the data', required=True)
+
+# ===== Argument parser ===== #
+arg_parser = base_parser.copy()
+arg_parser.add_argument('x', type=str, required=True, help='JSON of data')
+arg_parser.add_argument('orient', type=str, help='The orientation of the JSON of the data', required=True)
 
 # ===== Patch parser ===== #
-patch_parser = base_parser.copy()
+patch_parser = arg_parser.copy()
 patch_parser.add_argument('y', type=str, help='The response variable')
 
 # ====== Put parser ====== #
@@ -18,14 +21,13 @@ put_parser.add_argument('algkwargs', type=dict, help='Kwargs for algorithm')
 put_parser.add_argument('retrain', type=str, help='Whether to retrain using other data', default='False')
 
 # ===== Get parser ====== #
-get_parser = BASE_REQ.copy()
+get_parser = base_parser.copy()
 get_parser.add_argument('model_key', type=str, required=True, help='Key of the model')
 
 patch_parser.add_argument('model_key', type=str, required=True, help='Key of the model')
 
 # ===== Post parser ====== #
 post_parser = patch_parser.copy()
-post_parser.add_argument('model_key', type=str, required=True, help='Key of the model')
 
 
 class BaseModelResource(Resource):

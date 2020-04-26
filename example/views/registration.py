@@ -1,10 +1,10 @@
 from flask_restful import Resource
-from ml_api.utils import BASE_REQ
+from flask_restful.reqparse import RequestParser
 from ..db.models import User
 from ..app import db, auth_basic
 from flask import request
 
-user_parser = BASE_REQ.copy()
+user_parser = RequestParser()
 user_parser.add_argument('username', type=str, required=True, help='User name')
 
 parser = user_parser.copy()
