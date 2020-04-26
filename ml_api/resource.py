@@ -1,8 +1,8 @@
 from flask_restful import Resource
-from .utils import BASE_REQ
+from flask_restful.reqparse import RequestParser
 
 # ===== Base parser ===== #
-base_parser = BASE_REQ.copy()
+base_parser = RequestParser()
 base_parser.add_argument('x', type=str, required=True, help='JSON of data')
 base_parser.add_argument('orient', type=str, help='The orientation of the JSON of the data', required=True)
 
