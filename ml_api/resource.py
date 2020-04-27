@@ -88,7 +88,7 @@ class BaseModelResource(Resource):
         return self.auth(self._post)(**post_parser.parse_args())
 
     def patch(self):
-        return self.auth(self._patch)(**put_parser.parse_args())
+        return self.auth(self._patch)(**patch_parser.parse_args())
 
     def delete(self):
         return self.auth(self._delete)(**get_parser.parse_args())
