@@ -310,7 +310,7 @@ class ModelResource(BaseModelResource):
         x = self.parse_data(args['x'], orient=args['orient'])
 
         kwargs = dict()
-        if 'y' in args:
+        if args['y'] is not None:
             kwargs['y'] = self.parse_data(args['y'], orient=args['orient'])
 
         key = self._make_executor_key(dkey)
