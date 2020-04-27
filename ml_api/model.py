@@ -167,7 +167,6 @@ class ModelResource(BaseModelResource):
         :return:
         """
 
-        self.model_manager.pre_model_start(self.name(), key, self.serializer_backend())
         self.logger.info(f'Starting training of {self.name()} using {x.shape[0]} observations')
 
         try:
@@ -259,6 +258,10 @@ class ModelResource(BaseModelResource):
 
         key = self._make_executor_key(dkey)
 
+        # ===== Let it persist run first ===== #
+        self.model_manager.pre_model_start(self.name(), key, self.serializer_backend())
+
+        # ===== Start background task ===== #
         futures = self.executor.submit_stored(key, self.run_model, self.fit, model, x, dkey, **akws)
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x=x, **akws))
 
@@ -312,6 +315,10 @@ class ModelResource(BaseModelResource):
 
         key = self._make_executor_key(dkey)
 
+        # ===== Let it persist run first ===== #
+        self.model_manager.pre_model_start(self.name(), key, self.serializer_backend())
+
+        # ===== Start background task ===== #
         futures = self.executor.submit_stored(key, self.run_model, self.update, model, x, dkey, **kwargs)
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x=x))
 
