@@ -259,7 +259,7 @@ class ModelResource(BaseModelResource):
         key = self._make_executor_key(dkey)
 
         # ===== Let it persist run first ===== #
-        self.model_manager.pre_model_start(self.name(), key, self.serializer_backend())
+        self.model_manager.pre_model_start(self.name(), dkey, self.serializer_backend())
 
         # ===== Start background task ===== #
         futures = self.executor.submit_stored(key, self.run_model, self.fit, model, x, dkey, **akws)
