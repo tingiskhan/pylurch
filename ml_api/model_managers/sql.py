@@ -73,7 +73,7 @@ class SQLModelManager(BaseModelManager):
         session.status = schema['status']
         session.byte_string = schema['byte_string']
 
-        if 'meta_data' in schema:
+        if 'meta_data' in schema and len(schema['meta_data']) > 0:
             session.meta_data = [
                 MetaData(key=k, value=v) for k, v in schema['meta_data'].items()
             ]
