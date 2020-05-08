@@ -11,6 +11,7 @@ class ModelStatus(Enum):
 class SerializerBackend(Enum):
     Dill = 'dill'
     ONNX = 'onnx'
+    Custom = 'custom'
 
 
 EXECUTOR_MAP = {

@@ -1,6 +1,4 @@
-import onnxruntime as rt
 from ..db.enums import SerializerBackend, ModelStatus
-import dill
 import platform
 from datetime import datetime
 from ..db.schema import ModelSchema
@@ -149,7 +147,8 @@ class BaseModelManager(object):
         :type key: str
         :param backend: The backend to use
         :type backend: SerializerBackend
-        :return: onnxruntime.InferenceSession
+        :return: The byte string
+        :rtype: bytes
         """
 
         saved_model = self._get_session(name, key, backend, status=ModelStatus.Done)
@@ -157,12 +156,7 @@ class BaseModelManager(object):
         if saved_model is None:
             return None
 
-        bytestring = saved_model['byte_string']
-
-        if backend == SerializerBackend.ONNX:
-            return rt.InferenceSession(bytestring)
-        elif backend == SerializerBackend.Dill:
-            return dill.loads(bytestring)
+        return saved_model['byte_string']
 
     def save(self, name, key, obj, backend, meta_data=None):
         """

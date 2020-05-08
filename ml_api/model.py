@@ -4,6 +4,8 @@ from hashlib import sha256
 from .db.enums import ModelStatus, SerializerBackend
 import numpy as np
 from .resource import BaseModelResource
+import dill
+import onnxruntime as rt
 
 
 class ModelResource(BaseModelResource):
@@ -94,18 +96,23 @@ class ModelResource(BaseModelResource):
         if obj is None:
             return None
 
-        return self._load(obj)
+        return self.deserialize(obj)
 
-    def _load(self, obj):
+    def deserialize(self, bytestring):
         """
-        To be overridden if you save something other than the actual model. E.g. if you choose to save a state
-        dictionary you need be override this method.
-        :param obj: The object
-        :type obj: object
-        :return: Model
+        Method for deserializing the model. Can be overridden if custom serializer.
+        :param bytestring: The byte string
+        :type bytestring: bytes
+        :return: The model
+        :rtype: object
         """
 
-        return obj
+        if self.serializer_backend() == SerializerBackend.Custom:
+            raise NotImplementedError('Please override this method!')
+        if self.serializer_backend() == SerializerBackend.ONNX:
+            return rt.InferenceSession(bytestring)
+        elif self.serializer_backend() == SerializerBackend.Dill:
+            return dill.loads(bytestring)
 
     def fit(self, model, x, y=None, **kwargs):
         """
