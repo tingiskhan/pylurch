@@ -1,14 +1,14 @@
 from flask_restful import Api
-from .resource import BaseModelResource
+from .metaresource import BaseModelResource
 from flask_executor import Executor
+from .model_managers import BaseModelManager
 
 
 class MachineLearningApi(Api):
-    def __init__(self, model_manager, **kwargs):
+    def __init__(self, model_manager: BaseModelManager, **kwargs):
         """
         An extension of flask_restful.Api for facilitating the exposing of Machine Learning models.
         :param model_manager: The model manager
-        :type model_manager: ml_api.model_managers.base.BaseModelManager
         """
 
         self._executor = None

@@ -1,10 +1,11 @@
-from ..db.enums import SerializerBackend, ModelStatus
+from ..enums import SerializerBackend, ModelStatus
 import platform
 from datetime import datetime
-from ..db.schema import ModelSchema
+from ..schemas import ModelSchema
+from logging import Logger
+from typing import Dict
 
 
-# TODO: Perhaps use YAML as base to streamline?
 class BaseModelManager(object):
     def __init__(self):
         """
@@ -17,13 +18,11 @@ class BaseModelManager(object):
     def initialize(self):
         """
         Initializes the model manager.
-        :return: Self
-        :rtype: BaseModelManager
         """
 
         return self
 
-    def set_logger(self, logger):
+    def set_logger(self, logger: Logger):
         self._logger = logger
 
     def close_all_running(self):
@@ -33,17 +32,12 @@ class BaseModelManager(object):
 
         raise NotImplementedError()
 
-    def pre_model_start(self, name, key, backend):
+    def pre_model_start(self, name: str, key: str, backend: SerializerBackend):
         """
         What to do before starting model. E.g. create a database entry or a YAML-file.
         :param name: The name of the model
-        :type name: str
         :param key: The key
-        :type key: str
         :param backend: The backend to use
-        :type backend: SerializerBackend
-        :return: Self
-        :rtype: BaseModelManager
         """
 
         asdict = {
@@ -59,16 +53,13 @@ class BaseModelManager(object):
 
         return self
 
-    def model_fail(self, name, key, backend):
+    def model_fail(self, name: str, key: str, backend: SerializerBackend):
         """
         What to do on model fail.
-        :type name: str
+        :param name: Name of the session
         :param key: The key
-        :type key: str
         :param backend: The backend to use
         :type backend: SerializerBackend
-        :return: Self
-        :rtype: BaseModelManager
         """
 
         data = self._get_session(name, key, backend, status=ModelStatus.Running)
@@ -80,75 +71,61 @@ class BaseModelManager(object):
 
         return self
 
-    def _get_session(self, name, key, backend, status=None):
+    def _get_session(self, name: str, key: str, backend: SerializerBackend,
+                     status: ModelStatus = None) -> Dict[str, object]:
         """
         Get the given session of model with `name` by ways of `key`. Returns the session represented as a dictionary
         :param name: The name of the model
-        :type name: str
         :param key: The hash key
-        :type key: str
         :param backend: The backend
-        :type backend: SerializerBackend
         :param status: If to filter on status
-        :type status: ModelStatus
-        :rtype: dict
         """
 
         raise NotImplementedError()
 
-    def _persist(self, schema):
+    def _persist(self, schema: dict):
         """
         Persist the data for the first time.
         :param schema: The schema to persist.
-        :type schema: dict
-        :return: Self
+         Self
         :rtype: BaseModelManager
         """
 
         raise NotImplementedError()
 
-    def _update(self, schema):
+    def _update(self, schema: dict):
         """
         Update an existing entry.
         :param schema: The schema to persist.
-        :type schema: dict
-        :return: Self
+         Self
         :rtype: BaseModelManager
         """
 
         raise NotImplementedError()
 
-    def check_status(self, name, key, backend):
+    def check_status(self, name: str, key: str, backend: SerializerBackend) -> ModelStatus:
         """
         Checks the status.
         :param name: The name of the model
-        :type name: str
         :param key: The key of the model
-        :type key: str
         :param backend: The backend to use
-        :type backend: SerializerBackend
-        :return: String indicating status
-        :rtype: str
+         String indicating status
         """
 
         schema = self._get_session(name, key, backend)
 
         if schema is None:
-            return None
+            return ModelStatus.Unknown
 
         return schema['status']
 
-    def load(self, name, key, backend):
+    def load(self, name: str, key: str, backend: SerializerBackend) -> bytes or None:
         """
         Loads the model.
         :param name: The name of the model to save
-        :type name: str
         :param key: The data key
-        :type key: str
         :param backend: The backend to use
-        :type backend: SerializerBackend
-        :return: The byte string
-        :rtype: bytes
+         The byte string
         """
 
         saved_model = self._get_session(name, key, backend, status=ModelStatus.Done)
@@ -158,21 +135,16 @@ class BaseModelManager(object):
 
         return saved_model['byte_string']
 
-    def save(self, name, key, obj, backend, meta_data=None):
+    def save(self, name: str, key: str, obj: object, backend: SerializerBackend, meta_data: Dict[str, str] = None):
         """
         Save the model.
         :param name: The name of the model to save
-        :type name: str
         :param key: The key of the data
-        :type key: str
         :param obj: The model to save in byte string
-        :type obj: bytes
         :param backend: The backend to use
-        :type backend: SerializerBackend
         :param meta_data: Meta data to add to the session
-        :type meta_data: dict[str, str]
-        :return: None
-        :rtype: None
+         Self
+        :rtype: BaseModelManager
         """
 
         ms = self._get_session(name, key, backend, status=ModelStatus.Running)
@@ -188,16 +160,13 @@ class BaseModelManager(object):
 
         return self
 
-    def delete(self, name, key, backend):
+    def delete(self, name: str, key: str, backend: SerializerBackend):
         """
         Method for deleting model.
         :param name: The name of the model
-        :type name: str
         :param key: The key of the model to save
-        :type key: str
         :param backend: The backend to use
-        :type backend: SerializerBackend
-        :return: Self
+         Self
         :rtype: BaseModelManager
         """
 

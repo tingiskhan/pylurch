@@ -1,8 +1,8 @@
 from .base import BaseModelManager
 import platform
-from ..db.models import TrainingSession, Model, Base, MetaData
+from ..database import TrainingSession, Model, Base, MetaData
 from datetime import datetime
-from ..db.enums import ModelStatus
+from ..enums import ModelStatus
 
 
 class SQLModelManager(BaseModelManager):

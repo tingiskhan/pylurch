@@ -3,17 +3,16 @@ from .base import BaseModelManager
 import platform
 from datetime import datetime
 import glob
-from ..db.enums import ModelStatus
-import yaml
-from ..db.schema import ModelSchema
+from ..enums import ModelStatus
+from ..schemas import ModelSchema
+import dill
 
 
 class FileModelManager(BaseModelManager):
-    def __init__(self, folder):
+    def __init__(self, folder: str):
         """
         Defines a base class for model management.
         :param folder: The prefix for each model file
-        :type folder: str
         """
 
         super().__init__()
@@ -25,12 +24,12 @@ class FileModelManager(BaseModelManager):
             os.mkdir(self._pref)
 
     def close_all_running(self):
-        ymls = glob.glob(f'{self._pref}/*.{self._ext}', recursive=True)
+        files = glob.glob(f'{self._pref}/*.{self._ext}', recursive=True)
 
         running = 0
-        for f in ymls:
-            with open(f, 'r') as f_:
-                schema = ModelSchema().load(yaml.safe_load(f_))
+        for f in files:
+            with open(f, 'rb') as f_:
+                schema = ModelSchema().load(dill.load(f_))
 
             if schema.get('upd_by') != platform.node():
                 continue
@@ -60,15 +59,15 @@ class FileModelManager(BaseModelManager):
         if not os.path.exists(path):
             return None
 
-        with open(path, 'r') as s:
-            return ModelSchema().load(yaml.safe_load(s))
+        with open(path, 'rb') as s:
+            return ModelSchema().load(dill.load(s))
 
     def _persist(self, schema):
-        yml = ModelSchema().dump(schema)
+        dct = ModelSchema().dump(schema)
 
         path = f'{self._pref}/{self._format_name(schema["model_name"], schema["hash_key"], schema["backend"])}'
-        with open(path, 'w') as f:
-            yaml.dump(yml, f)
+        with open(path, 'wb') as f:
+            dill.dump(dct, f)
 
     def _update(self, schema):
         self._persist(schema)

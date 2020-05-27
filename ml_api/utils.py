@@ -2,14 +2,14 @@ from pandas.util import hash_pandas_object
 from hashlib import sha256
 import pandas as pd
 from werkzeug.exceptions import BadRequest
+from typing import Iterable, Callable, Dict
+from pandas._typing import FrameOrSeries
 
 
-def hash_series(*args):
+def hash_series(*args: Iterable[FrameOrSeries]) -> str:
     """
     Hash a number of pandas DataFrames.
     :param args: A number of Series/DataFrames
-    :type args: tuple[Series]|tuple[DataFrame]
-    :rtype: str
     """
 
     conc = pd.concat(args, axis=1)
@@ -17,7 +17,7 @@ def hash_series(*args):
     return sha256(hash_pandas_object(conc, index=True).values).hexdigest()
 
 
-def custom_error(func):
+def custom_error(func: Callable[[object, Iterable, Dict], object]):
     def wrap(obj, *args, **kwargs):
         try:
             return func(obj, *args, **kwargs)

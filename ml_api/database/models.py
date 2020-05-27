@@ -1,15 +1,15 @@
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy import Column, String, DateTime, func, LargeBinary, Integer, ForeignKey, Enum
 from sqlalchemy.orm import relationship
-from .enums import ModelStatus, SerializerBackend
+from ..enums import ModelStatus, SerializerBackend
 from datetime import datetime
 import platform
 import onnxruntime as rt
 import dill
-from .schema import ModelSchema
+from ..schemas import ModelSchema
 
 
-class MyMixin(object):
+class BaseMixin(object):
     @declared_attr
     def __tablename__(cls):
         return cls.__name__
@@ -18,7 +18,7 @@ class MyMixin(object):
         'always_refresh': True
     }
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     upd_at = Column(DateTime, nullable=True, default=func.now())
     upd_by = Column(String(255), nullable=False, default=platform.node(), onupdate=platform.node())
     last_update = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -27,7 +27,7 @@ class MyMixin(object):
 Base = declarative_base()
 
 
-class Model(MyMixin, Base):
+class Model(BaseMixin, Base):
     name = Column(String(255), nullable=False, unique=True)
 
     training_sessions = relationship('TrainingSession', back_populates='model')
@@ -36,7 +36,7 @@ class Model(MyMixin, Base):
         self.name = name
 
 
-class TrainingSession(MyMixin, Base):
+class TrainingSession(BaseMixin, Base):
     model_id = Column(Integer, ForeignKey(Model.id))
     hash_key = Column(String(255), nullable=False)
 
@@ -51,7 +51,8 @@ class TrainingSession(MyMixin, Base):
     model = relationship(Model, back_populates='training_sessions', uselist=False)
     meta_data = relationship('MetaData')
 
-    def __init__(self, hash_key, start_time, status, backend, end_time=datetime.max, byte_string=None, upd_by=None):
+    def __init__(self, hash_key: str, start_time: datetime, status: ModelStatus, backend: SerializerBackend,
+                 end_time: datetime = datetime.max, byte_string: bytes = None, upd_by: str = None):
         self.hash_key = hash_key
         self.start_time = start_time
         self.status = status
@@ -77,12 +78,12 @@ class TrainingSession(MyMixin, Base):
         return out
 
 
-class MetaData(MyMixin, Base):
+class MetaData(BaseMixin, Base):
     session_id = Column(Integer, ForeignKey(TrainingSession.id))
 
     key = Column(String(255), nullable=False)
     value = Column(String(255), nullable=False)
 
-    def __init__(self, key, value):
+    def __init__(self, key: str, value: str):
         self.key = key
         self.value = value

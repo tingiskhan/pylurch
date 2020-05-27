@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields as f, ValidationError
 from marshmallow_enum import EnumField
-from .enums import SerializerBackend, ModelStatus
+from ..enums import SerializerBackend, ModelStatus
 
 
 class BytesField(f.Field):

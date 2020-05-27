@@ -1,40 +1,37 @@
 import pandas as pd
 from .utils import hash_series, custom_error
 from hashlib import sha256
-from .db.enums import ModelStatus, SerializerBackend
+from .enums import ModelStatus, SerializerBackend
 import numpy as np
-from .resource import BaseModelResource
+from .metaresource import BaseModelResource
 import dill
 import onnxruntime as rt
+from typing import Dict
+from flask_executor.futures import Future
 
 
 class ModelResource(BaseModelResource):
-    def make_model(self, **kwargs):
+    def make_model(self, **kwargs: Dict[str, object]) -> BaseModelResource:
         """
         Creates the model to be used.
         :param kwargs: Any key-worded arguments passed to the model.
-        :rtype: BaseModel
         """
 
         raise NotImplementedError()
 
-    def serializer_backend(self):
+    def serializer_backend(self) -> SerializerBackend:
         """
-        Returns the backend used by the backend as a string. See db.enums.SerializerBackends
-        :rtype: ModelStatus
+        Returns the backend used by the backend.
         """
 
         raise NotImplementedError()
 
-    def done_callback(self, fut, key, x, **kwargs):
+    def done_callback(self, fut: Future, key: str, x: pd.DataFrame, **kwargs: Dict[str, object]):
         """
-        What to do when the callback is done.
+        Callback for when futures is done with work.
         :param fut: The future
-        :type fut: flask_executor.futures.Future
         :param key: The key associated with the model
-        :type key: str
         :param x: The data
-        :type x: pandas.DataFrame
         """
 
         res = fut.result()
@@ -57,38 +54,31 @@ class ModelResource(BaseModelResource):
         finally:
             self.executor.futures.pop(self._make_executor_key(key))
 
-    def serialize(self, model, x, y=None):
+    def serialize(self, model: object, x: pd.DataFrame, y: pd.DataFrame = None) -> bytes:
         """
         Serialize model to byte string.
         :param model: The model to convert
         :param x: The data used for training
         :param y: The data used for training
-        :return: onnx
         """
 
         raise NotImplementedError()
 
-    def save_model(self, key, mod, meta_data=None):
+    def save_model(self, key: str, mod: bytes, meta_data: Dict[str, str] = None) -> None:
         """
         Method for saving the model.
         :param key: The key
-        :type key: str
         :param mod: The model
-        :type mod: bytes
         :param meta_data: Whether to add any metadata associated with the model
-        :type meta_data: dict[str, str]
-        :return: Nothing
-        :rtype: None
         """
 
         self.model_manager.save(self.name(), key, mod, self.serializer_backend(), meta_data=meta_data)
 
-    def load_model(self, key):
+    def load_model(self, key: str) -> object:
         """
         Method for loading the model.
         :param key: The key
-        :type key: str
-        :return: TrainingSession
+         The model object
         """
 
         obj = self.model_manager.load(self.name(), key, self.serializer_backend())
@@ -98,13 +88,10 @@ class ModelResource(BaseModelResource):
 
         return self.deserialize(obj)
 
-    def deserialize(self, bytestring):
+    def deserialize(self, bytestring: bytes) -> object:
         """
         Method for deserializing the model. Can be overridden if custom serializer.
         :param bytestring: The byte string
-        :type bytestring: bytes
-        :return: The model
-        :rtype: object
         """
 
         if self.serializer_backend() == SerializerBackend.Custom:
@@ -114,44 +101,33 @@ class ModelResource(BaseModelResource):
         elif self.serializer_backend() == SerializerBackend.Dill:
             return dill.loads(bytestring)
 
-    def fit(self, model, x, y=None, **kwargs):
+    def fit(self, model: object, x: pd.DataFrame, y: pd.DataFrame = None, **kwargs: Dict[str, object]) -> object:
         """
         Fits the model
         :param model: The model to use
         :param x: The data
-        :type x: pd.DataFrame
         :param y: The response data (if any)
-        :type y: pd.DataFrame
         :param kwargs: Any additional key worded arguments
-        :return: The model
         """
 
         raise NotImplementedError()
 
-    def update(self, model, x, y=None, **kwargs):
+    def update(self, model: object, x: pd.DataFrame, y: pd.DataFrame = None, **kwargs: Dict[str, object]) -> object:
         """
         Fits the model
         :param model: The model to use
         :param x: The data
-        :type x: pd.DataFrame
         :param y: The response data (if any)
-        :type y: pd.DataFrame
         :param kwargs: Any additional key worded arguments
-        :return: The model
         """
 
         raise ValueError('This model does not support updating!')
 
-    def predict(self, mod, x, orient, **kwargs):
+    def predict(self, mod: object, x: pd.DataFrame, **kw: Dict[str, object]) -> pd.DataFrame:
         """
         Return the prediction.
         :param mod: The model
         :param x: The data to predict for
-        :type x: pd.DataFrame
-        :param orient: The orientation
-        :type orient: str
-        :return: JSON like dict
-        :rtype: dict
         """
 
         if self.serializer_backend() != SerializerBackend.ONNX:
@@ -162,16 +138,15 @@ class ModelResource(BaseModelResource):
 
         res = mod.run([label_name], {inp_name: x.values.astype(np.float32)})[0]
 
-        return {'y': pd.DataFrame(res, index=x.index, columns=['y']).to_json(orient=orient)}
+        return pd.DataFrame(res, index=x.index, columns=['y'])
 
-    def run_model(self, func, model, x, key, **kwargs):
+    def run_model(self, func: callable, model: object, x: pd.DataFrame, key: str, **kwargs):
         """
-        Utility function
+        Utility function for running the model and handling persisting/exceptions.
         :param func: The function to apply
         :param model: The model
         :param x: The data
         :param key: The key
-        :return:
         """
 
         self.logger.info(f'Starting training of {self.name()} using {x.shape[0]} observations')
@@ -183,85 +158,72 @@ class ModelResource(BaseModelResource):
             self.model_manager.model_fail(self.name(), key, self.serializer_backend())
             return None
 
-    def parse_data(self, data, **kwargs):
+    def parse_data(self, data: str, **kwargs) -> pd.DataFrame:
         """
         Method for parsing data.
         :param data: The data in string format
-        :type data: str
-        :return: Data in required format
+         Data in required format
         """
 
         return pd.read_json(data, **kwargs).sort_index()
 
-    def _make_executor_key(self, key):
+    def _make_executor_key(self, key: str) -> str:
         return f'{self.name()}-{key}'
 
-    def check_model_status(self, key):
+    def check_model_status(self, key: str) -> ModelStatus:
         """
         Helper function for checking the status of the model.
         :param key: The key of the model
-        :type key: str
-        :return: String indicating status
-        :rtype: ModelStatus
         """
 
         return self.model_manager.check_status(self.name(), key, self.serializer_backend())
 
-    def name(self):
+    def name(self) -> str:
         """
         The name of the model to use.
-        :return: Name of the model
-        :rtype: str
         """
 
         raise NotImplementedError()
 
-    def add_metadata(self, model, **kwargs):
+    def add_metadata(self, model: object, **kwargs: Dict[str, str]) -> Dict[str, str]:
         """
         Allows user to add string meta data associated with the model. Is called when model is done.
         :param model: The instantiated model.
         :param kwargs: The key worded arguments associated with the model
-        :return: A dictionary
-        :rtype: dict[str, str]
         """
 
         return dict()
 
     @custom_error
-    def _put(self, **args):
+    def _put(self, x: str, orient: str, y: str = None, name=None, modkwargs: Dict[str, object] = None,
+             algkwargs: Dict[str, object] = None, retrain: bool = False):
         # ===== Get data ===== #
-        orient = args['orient']
-        x = self.parse_data(args['x'], orient=orient)
-
-        retrain = args['retrain'].lower() == 'true'
-
-        # ===== Define model ===== #
-        modkwargs = args['modkwargs'] or dict()
-        akws = args['algkwargs'] or dict()
-
-        if args['y'] is not None:
-            akws['y'] = self.parse_data(args['y'], orient=orient)
-
-        model = self.make_model(**modkwargs)
+        x = self.parse_data(x, orient=orient)
 
         # ===== Generate model key ===== #
-        dkey = hash_series(x) if args['name'] is None else sha256((args['name']).encode()).hexdigest()
+        dkey = hash_series(x) if name is None else sha256(name.lower().encode()).hexdigest()
 
         # ===== Check status ===== #
         status = self.check_model_status(dkey)
 
+        if status not in (ModelStatus.Unknown, ModelStatus.Failed) and not retrain:
+            self.logger.info('Model already exists, and no retrain requested')
+            return {'status': status, 'model_key': dkey}
+
+        # ===== Define model ===== #
+        modkwargs = modkwargs or dict()
+        akws = algkwargs or dict()
+
+        if y is not None:
+            akws['y'] = self.parse_data(y, orient=orient)
+
+        model = self.make_model(**modkwargs)
+
         if status == ModelStatus.Running:
             if retrain:
-                return {
-                    'message': f'Cannot cancel already {status} task. Try re-running when model is done',
-                    'model_key': dkey
-                }
+                return {'status': status, 'model_key': dkey}, 400
 
-            return {'message': status.value, 'model_key': dkey}
-
-        if (status is not None and status != ModelStatus.Failed) and not retrain:
-            self.logger.info('Model already exists, and no retrain requested')
-            return {'message': status.value, 'model_key': dkey}
+            return {'status': status, 'model_key': dkey}
 
         key = self._make_executor_key(dkey)
 
@@ -272,66 +234,62 @@ class ModelResource(BaseModelResource):
         futures = self.executor.submit_stored(key, self.run_model, self.fit, model, x, dkey, **akws)
         futures.add_done_callback(lambda u: self.done_callback(u, dkey, x=x, **akws))
 
-        return {'model_key': dkey}
+        return {'status': self.check_model_status(dkey), 'model_key': dkey}
 
     @custom_error
-    def _post(self, **args):
-        key = args['model_key']
-
-        status = self.check_model_status(key)
-
-        if status is None:
-            return {'message': 'TrainingSession does not exist!'}, 400
+    def _post(self, model_key: str, x: str, orient: str):
+        status = self.check_model_status(model_key)
 
         if status != ModelStatus.Done:
-            return {'message': status.value}
+            return {'data': None, 'orient': orient}, 400
 
-        mod = self.load_model(key)
+        mod = self.load_model(model_key)
 
         if mod is None:
-            return {'message': 'No such model!'}, 400
+            return {'data': None, 'orient': orient}, 400
 
         self.logger.info(f'Predicting values using model {self.name()}')
+        x_hat = self.predict(mod, self.parse_data(x, orient=orient), orient=orient)
 
-        return self.predict(mod, self.parse_data(args['x'], orient=args['orient']), orient=args['orient'])
+        resp = {
+            'data': x_hat.to_json(orient=orient),
+            'orient': orient,
+        }
+
+        return resp
 
     @custom_error
     def _get(self, model_key):
         status = self.check_model_status(model_key)
 
-        return {'message': None if status is None else status.value}
+        return {'status': status}
 
     @custom_error
-    def _patch(self, **args):
-        dkey = args['model_key']
-
-        status = self.check_model_status(dkey)
-
-        if status is None:
-            return {'message': 'TrainingSession does not exist!'}, 400
+    def _patch(self, model_key: str, x: str, orient: str, y: str = None):
+        status = self.check_model_status(model_key)
 
         if status != ModelStatus.Done:
-            return {'message': status.value}
+            return {'status': status}
 
-        model = self.load_model(dkey)
-        x = self.parse_data(args['x'], orient=args['orient'])
+        model = self.load_model(model_key)
+        x = self.parse_data(x, orient=orient)
 
         kwargs = dict()
-        if args['y'] is not None:
-            kwargs['y'] = self.parse_data(args['y'], orient=args['orient'])
+        if y is not None:
+            kwargs['y'] = self.parse_data(y, orient=orient)
 
-        key = self._make_executor_key(dkey)
+        key = self._make_executor_key(model_key)
 
         # ===== Let it persist run first ===== #
         self.model_manager.pre_model_start(self.name(), key, self.serializer_backend())
 
         # ===== Start background task ===== #
-        futures = self.executor.submit_stored(key, self.run_model, self.update, model, x, dkey, **kwargs)
-        futures.add_done_callback(lambda u: self.done_callback(u, dkey, x=x))
+        futures = self.executor.submit_stored(key, self.run_model, self.update, model, x, model_key, **kwargs)
+        futures.add_done_callback(lambda u: self.done_callback(u, model_key, x=x))
 
         self.logger.info(f'Started updating of model {self.name()} using {x.shape[0]} new observations')
 
-        return {'message': self.executor.futures._state(dkey)}
+        return {'status': self.check_model_status(model_key)}
 
     @custom_error
     def _delete(self, model_key):
@@ -341,4 +299,4 @@ class ModelResource(BaseModelResource):
 
         self.logger.info(f'Successfully deleted model with key: {model_key}')
 
-        return {'message': 'SUCCESS'}
+        return {'status': ModelStatus.Done}
