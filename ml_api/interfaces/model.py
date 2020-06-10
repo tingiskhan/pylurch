@@ -4,6 +4,8 @@ import pandas as pd
 from .base import BaseInterface
 from ..schemas import GetResponse, PutResponse, PostResponse
 from ..enums import ModelStatus
+import numpy as np
+import json
 
 
 class GenericModelInterface(BaseInterface):
@@ -83,11 +85,12 @@ class GenericModelInterface(BaseInterface):
 
         return self
 
-    def predict(self, x: pd.DataFrame):
+    def predict(self, x: pd.DataFrame, as_array=False):
         """
         Predict the model.
         :param x: The DataFrame to predict for
-        """
+        :param as_array: Whether to return as an numpy.array or pandas.DataFrame. Returning large DataFrames take
+        considerably longer time than a corresponding sized numpy.ndarray.
 
         if not self._key:
             raise ValueError('Must call `fit` first!')
@@ -95,12 +98,17 @@ class GenericModelInterface(BaseInterface):
         params = {
             'model_key': self._key,
             'x': x.to_json(orient=self._orient),
-            'orient': self._orient
+            'orient': self._orient,
+            'as_array': as_array
         }
 
         resp = PostResponse().load(self._exec_req(r.post, json=params))
+        data = json.loads(resp['data'])
 
-        return pd.read_json(resp['data'], orient=resp['orient'])
+        if not as_array:
+            return pd.DataFrame.from_dict(data, orient=resp['orient'])
+
+        return np.array(data)
 
     def update(self, x: pd.DataFrame, y: pd.DataFrame = None, wait: bool = True):
         """

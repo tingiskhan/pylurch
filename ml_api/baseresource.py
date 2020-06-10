@@ -195,13 +195,13 @@ class ModelResource(BaseModelResource):
         return dict()
 
     @custom_error
-    def _put(self, x: str, orient: str, y: str = None, name=None, modkwargs: Dict[str, object] = None,
+    def _put(self, x: str, orient: str, name: str, y: str = None, modkwargs: Dict[str, object] = None,
              algkwargs: Dict[str, object] = None, retrain: bool = False):
         # ===== Get data ===== #
         x = self.parse_data(x, orient=orient)
 
         # ===== Generate model key ===== #
-        dkey = hash_series(x) if name is None else sha256(name.lower().encode()).hexdigest()
+        dkey = sha256(name.lower().encode()).hexdigest()
 
         # ===== Check status ===== #
         status = self.check_model_status(dkey)
@@ -237,7 +237,7 @@ class ModelResource(BaseModelResource):
         return {'status': self.check_model_status(dkey), 'model_key': dkey}
 
     @custom_error
-    def _post(self, model_key: str, x: str, orient: str):
+    def _post(self, model_key: str, x: str, orient: str, as_array: bool):
         status = self.check_model_status(model_key)
 
         if status != ModelStatus.Done:
@@ -249,10 +249,16 @@ class ModelResource(BaseModelResource):
             return {'data': None, 'orient': orient}, 400
 
         self.logger.info(f'Predicting values using model {self.name()}')
-        x_hat = self.predict(mod, self.parse_data(x, orient=orient), orient=orient)
+
+        x_hat = self.predict(mod, self.parse_data(x, orient=orient))
+
+        if as_array:
+            x_resp = x_hat.values.tolist()
+        else:
+            x_resp = x_hat.to_json(orient=orient)
 
         resp = {
-            'data': x_hat.to_json(orient=orient),
+            'data': x_resp,
             'orient': orient,
         }
 

@@ -8,7 +8,7 @@ class FitParser(Schema):
 
 
 class PutParser(FitParser):
-    name = f.String(required=False)
+    name = f.String(required=True)
     modkwargs = f.Dict(required=False, missing=dict())
     algkwargs = f.Dict(required=False, missing=dict())
     retrain = f.Boolean(required=False, missing=False)
@@ -23,7 +23,7 @@ class PatchParser(FitParser, GetParser):
 
 
 class PostParser(PatchParser):
-    pass
+    as_array = f.Boolean(required=False, missing=False)
 
 
 
