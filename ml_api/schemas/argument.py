@@ -24,6 +24,7 @@ class PatchParser(FitParser, GetParser):
 
 class PostParser(PatchParser):
     as_array = f.Boolean(required=False, missing=False)
+    kwargs = f.Dict(required=False, missing=dict())
 
 
 

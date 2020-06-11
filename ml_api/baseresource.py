@@ -237,7 +237,7 @@ class ModelResource(BaseModelResource):
         return {'status': self.check_model_status(dkey), 'model_key': dkey}
 
     @custom_error
-    def _post(self, model_key: str, x: str, orient: str, as_array: bool):
+    def _post(self, model_key: str, x: str, orient: str, as_array: bool, kwargs: Dict[str, object]):
         status = self.check_model_status(model_key)
 
         if status != ModelStatus.Done:
@@ -250,7 +250,7 @@ class ModelResource(BaseModelResource):
 
         self.logger.info(f'Predicting values using model {self.name()}')
 
-        x_hat = self.predict(mod, self.parse_data(x, orient=orient))
+        x_hat = self.predict(mod, self.parse_data(x, orient=orient), **kwargs)
 
         if as_array:
             x_resp = x_hat.values.tolist()

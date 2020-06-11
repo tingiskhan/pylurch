@@ -85,7 +85,7 @@ class GenericModelInterface(BaseInterface):
 
         return self
 
-    def predict(self, x: pd.DataFrame, as_array=False):
+    def predict(self, x: pd.DataFrame, as_array=False, **kwargs):
         """
         Predict the model.
         :param x: The DataFrame to predict for
@@ -100,7 +100,8 @@ class GenericModelInterface(BaseInterface):
             'model_key': self._key,
             'x': x.to_json(orient=self._orient),
             'orient': self._orient,
-            'as_array': as_array
+            'as_array': as_array,
+            'kwargs': kwargs or dict()
         }
 
         resp = PostResponse().load(self._exec_req(r.post, json=params))
