@@ -91,6 +91,7 @@ class GenericModelInterface(BaseInterface):
         :param x: The DataFrame to predict for
         :param as_array: Whether to return as an numpy.array or pandas.DataFrame. Returning large DataFrames take
         considerably longer time than a corresponding sized numpy.ndarray.
+        """
 
         if not self._key:
             raise ValueError('Must call `fit` first!')
