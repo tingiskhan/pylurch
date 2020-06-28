@@ -1,4 +1,4 @@
-__version__ = '0.2.4'
+__version__ = '0.2.5'
 
-from .api import MachineLearningApi
-from .baseresource import ModelResource
+from .resource import ModelResource
+from .inference import InferenceModel

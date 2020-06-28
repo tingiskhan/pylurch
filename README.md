@@ -1,5 +1,5 @@
 # ml-server
-Lightweight Flask application for serving ML models.
+Lightweight Falcon application for serving ML models.
 
 ## Background
 There's a lot of good resources for learning about how to structure an API for serving ML algorithms. [Medium](https://medium.com/) provides a plethora of different blogs around the subject, but a lot of them are for very specific use cases in order to get something up and running fast.
@@ -14,7 +14,8 @@ Some (key) differences between this library and the libraries usually seen on th
 3. Allows using different backends for serializing the models, e.g. enables easy serialization to [ONNX](https://github.com/onnx/onnx).
 
 ## Install
-The library utilizes the [flask](https://flask.palletsprojects.com/en/1.1.x/) framework and builds upon [flask-restful](https://flask-restful.readthedocs.io/en/latest/) for serving, but also uses extensions like [flask-executor](https://flask-executor.readthedocs.io/en/latest/), and [flask-SQLAlchemy](https://flask-sqlalchemy.palletsprojects.com/en/2.x/). You install the library via
+The library utilizes the [falcon](https://falcon.readthedocs.io/en/stable/) framework and utilizes several other libraries such as [marshmallow](https://marshmallow.readthedocs.io/en/stable/) and [SQLAlchemy](https://www.sqlalchemy.org/).
+You install the library via
 ```
 pip install git+https://github.com/tingiskhan/ml-server
 ```
@@ -38,57 +39,30 @@ You use the API as you would any REST based API. Every model exposes the five en
  ## Example
  A really trivial example follows below. It's assumed that you have started the server locally on port 5000, which is done as 
  ```python
- from example.app import init_app
-
+from example.app import init_app
+from waitress import serve 
 
 if __name__ == '__main__':
-    init_app().run()
+    serve(init_app(), port=8080)
  ```
  
  Now, let's train and predict.
  
  ```python
 import pandas as pd
-from requests import post, put
-import json
-from time import sleep
-
-address = 'http://localhost:5000/'
-
-headers = {
-    'Content-type': 'application/json'
-}
+import numpy as np
+from ml_api.interfaces import GenericModelInterface
 
 # ===== Generate some dummy data ===== #
-x = pd.DataFrame(pd.np.random.normal(size=(10000, 10)))
-y = (x.sum(axis=1) <= x.mean(axis=1)).astype(pd.np.float32)
+x = pd.DataFrame(np.random.normal(size=(10000, 10)))
+y = (x.sum(axis=1) <= x.mean(axis=1)).astype(np.float32)
 
-# ===== Define parameters to send ===== #
-orient = 'columns'
+# ===== Set up interface, perform fit and predict ===== #
+mi = GenericModelInterface('http://localhost:8080/', 'logreg')
+mi.fit(x, y.to_frame(), name='logistic-regression-random-data')
 
-params = {
-    'x': x.to_json(orient=orient),
-    'y': y.to_frame().to_json(orient=orient),
-    'orient': orient
-}
+yhat = mi.predict(x).iloc[:, 0]
+yhat.index = yhat.index.astype(int)
 
-# ===== Train the model (logistic regression) ====== #
-train = put(address + 'logreg', headers=headers, json=params)
-resp = json.loads(train.text)
-
-# ===== Let it train ===== #
-sleep(10)
-
-# ===== Predict in sample ===== #
-pred = {
-    'x': x.to_json(orient=orient),
-    'orient': orient,
-    'model_key': resp['model_key']
-}
-
-predict = post(address + 'logreg', headers=headers, json=pred)
-res = json.loads(predict.text)
-yhat = pd.read_json(res['y']).iloc[:, 0]
-
-print(f'Precision is: {(yhat == y).mean():.2%}')
+print(f'Precision is: {(yhat.sort_index() == y).mean():.2%}')
  ```

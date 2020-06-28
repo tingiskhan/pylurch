@@ -40,7 +40,7 @@ class GenericModelInterface(BaseInterface):
         return f'{self._base}/{self._ep}'
 
     def _check_done(self):
-        resp = GetResponse().load(self._exec_req(r.get, json={'model_key': self._key}))
+        resp = GetResponse().load(self._exec_req(r.get, params={'model_key': self._key}))
 
         if resp['status'] == ModelStatus.Failed:
             raise Exception('Something went wrong trying to train the model! Check server logs for further details')
@@ -127,3 +127,13 @@ class GenericModelInterface(BaseInterface):
             params['y'] = y.to_json(orient=self._orient)
 
         return self._train(r.patch, wait=wait, json=params)
+
+    def delete(self, model_key: str):
+        """
+        Deletes all instances of a model with the model key.
+        :param model_key: The model key
+        """
+
+        req = r.delete(self._address, params={'model_key': model_key})
+
+        return self

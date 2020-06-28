@@ -3,24 +3,30 @@ import platform
 from ..database import TrainingSession, Model, Base, MetaData
 from datetime import datetime
 from ..enums import ModelStatus
+from sqlalchemy.orm import sessionmaker, scoped_session, Session
+from typing import Union
 
 
 class SQLModelManager(BaseModelManager):
-    def __init__(self, session):
+    def __init__(self, session_factory: Union[sessionmaker, scoped_session]):
         """
         TrainingSession manager for SQL based storing.
-        :param session: The session to use
-        :type session: sqlalchemy.orm.Session
+        :param session_factory: The session factory to use
         """
 
         super().__init__()
-        self._session = session
+        self._session_maker = session_factory
 
     def initialize(self):
-        Base.metadata.create_all(self._session.bind)
+        Base.metadata.create_all(bind=self._session_maker.bind)
+
+    def make_session(self) -> Session:
+        return self._session_maker()
 
     def close_all_running(self):
-        sessions = self._session.query(TrainingSession).filter(
+        session = self.make_session()
+
+        sessions = session.query(TrainingSession).filter(
             TrainingSession.status == ModelStatus.Running,
             TrainingSession.upd_by == platform.node()
         ).all()
@@ -34,15 +40,18 @@ class SQLModelManager(BaseModelManager):
             s.end_time = datetime.now()
             s.status = ModelStatus.Failed
 
-        self._session.commit()
+        session.commit()
+        session.close()
 
         return
 
     def _persist(self, schema):
-        model = self._session.query(Model).filter(Model.name == schema['model_name']).one_or_none()
+        session = self.make_session()
+
+        model = session.query(Model).filter(Model.name == schema['model_name']).one_or_none()
         if not model:
             model = Model(name=schema['model_name'])
-            self._session.add(model)
+            session.add(model)
 
             model.training_sessions = []
 
@@ -56,12 +65,15 @@ class SQLModelManager(BaseModelManager):
             )
         ]
 
-        self._session.commit()
+        session.commit()
+        session.close()
 
         return self
 
     def _update(self, schema):
-        session = self._session.query(TrainingSession).filter(
+        s = self.make_session()
+
+        session = s.query(TrainingSession).filter(
             TrainingSession.hash_key == schema['hash_key'],
             TrainingSession.status == ModelStatus.Running,
             TrainingSession.backend == schema['backend'],
@@ -78,12 +90,15 @@ class SQLModelManager(BaseModelManager):
                 MetaData(key=k, value=v) for k, v in schema['meta_data'].items()
             ]
 
-        self._session.commit()
+        s.commit()
+        s.close()
 
         return self
 
     def _get_session(self, name, key, backend, status=None):
-        query = self._session.query(TrainingSession).filter(
+        session = self.make_session()
+
+        query = session.query(TrainingSession).filter(
             TrainingSession.hash_key == key,
             TrainingSession.backend == backend,
             Model.name == name,
@@ -99,19 +114,22 @@ class SQLModelManager(BaseModelManager):
 
         model = query.order_by(TrainingSession.start_time.desc()).first()  # type: TrainingSession
 
-        if model is None:
-            return None
+        schema = model.to_schema() if model is not None else None
+        session.close()
 
-        return model.to_schema()
+        return schema
 
     def delete(self, name, key, backend):
-        deleted = self._session.query(TrainingSession).filter(
+        session = self.make_session()
+
+        deleted = session.query(TrainingSession).filter(
             Model.name == name,
             TrainingSession.model_id == Model.id,
             TrainingSession.hash_key == key,
             TrainingSession.backend == backend
         ).delete(synchronize_session='fetch')
 
-        self._session.commit()
+        session.commit()
+        session.close()
 
         return self

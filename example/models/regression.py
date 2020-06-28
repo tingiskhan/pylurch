@@ -1,11 +1,11 @@
-from ml_api import ModelResource
+from ml_api.inference import InferenceModel
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.linear_model import LinearRegression, LogisticRegressionCV
 from ml_api.enums import SerializerBackend
 
 
-class LinearRegressionView(ModelResource):
+class LinearRegressionModel(InferenceModel):
     def serializer_backend(self):
         return SerializerBackend.ONNX
 
@@ -31,7 +31,7 @@ class LinearRegressionView(ModelResource):
         }
 
 
-class LogisticRegressionView(LinearRegressionView):
+class LogisticRegressionModel(LinearRegressionModel):
     def name(self):
         return 'logistic-regression'
 

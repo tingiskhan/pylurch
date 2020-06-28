@@ -8,7 +8,6 @@ RUN conda install gxx_linux-64
 RUN conda install -c anaconda pyyaml gunicorn
 
 RUN pip install git+https://github.com/tingiskhan/ml-server.git
-RUN conda install -c conda-forge flask-httpauth flask-bcrypt
 
 COPY example ./example
 

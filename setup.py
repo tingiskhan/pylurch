@@ -20,10 +20,8 @@ setup(
     description='API for serving machine learning models',
     packages=find_packages(exclude='example'),
     install_requires=[
-        'flask',
-        'flask-executor',
-        'flask-restful',
-        'flask-sqlalchemy',
+        'sqlalchemy',
+        'falcon',
         'pandas',
         'pandas',
         'numpy',
