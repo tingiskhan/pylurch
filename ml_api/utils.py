@@ -1,7 +1,7 @@
 from pandas.util import hash_pandas_object
 from hashlib import sha256
 import pandas as pd
-from werkzeug.exceptions import BadRequest
+from falcon.errors import HTTPBadRequest
 from typing import Iterable, Callable, Dict
 from pandas._typing import FrameOrSeries
 
@@ -22,7 +22,7 @@ def custom_error(func: Callable[[object, Iterable, Dict], object]):
         try:
             return func(obj, *args, **kwargs)
         except Exception as e:
-            if isinstance(e, BadRequest):
+            if isinstance(e, HTTPBadRequest):
                 raise e
 
             obj.logger.exception('Failed in task', e)
