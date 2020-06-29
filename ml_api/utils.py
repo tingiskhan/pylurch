@@ -4,6 +4,7 @@ import pandas as pd
 from falcon.errors import HTTPBadRequest
 from typing import Iterable, Callable, Dict
 from pandas._typing import FrameOrSeries
+from falcon.status_codes import HTTP_500
 
 
 def hash_series(*args: Iterable[FrameOrSeries]) -> str:
@@ -26,6 +27,6 @@ def custom_error(func: Callable[[object, Iterable, Dict], object]):
                 raise e
 
             obj.logger.exception('Failed in task', e)
-            return {'message': str(e)}, 500
+            return {'message': str(e)}, HTTP_500
 
     return wrap

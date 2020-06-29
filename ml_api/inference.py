@@ -9,12 +9,13 @@ import onnxruntime as rt
 
 
 class InferenceModel(object):
-    def __init__(self, name: str, logger: Logger, model_manager: BaseModelManager):
+    def __init__(self, name: str, logger: Logger, model_manager: BaseModelManager, base=None):
         """
         Defines a base class for performing inference etc.
         """
 
         self._name = name
+        self._base = base  # type: InferenceModel
         self.logger = logger
         self._model_manager = model_manager
 
@@ -49,6 +50,9 @@ class InferenceModel(object):
         :param x: The data
         :param key: The key
         """
+
+        if self._base is not None:
+            raise NotImplementedError(f"'{self.name()}' inherits from '{self._base.name()}' and is thus not trainable!")
 
         self.logger.info(f"Starting training of '{self.name()}' with '{key}' and using {x.shape[0]} observations")
 
@@ -162,6 +166,9 @@ class InferenceModel(object):
         :param key: The key of the model
         """
 
+        if self._base is not None:
+            return self._base.check_status(key)
+
         return self.model_manager.check_status(self.name(), key, self.serializer_backend())
 
     def pre_model_start(self, key: str):
@@ -172,6 +179,10 @@ class InferenceModel(object):
         Method for loading the model.
         :param key: The key
         """
+
+        if self._base is not None:
+            self.logger.info(f"'{self.name()}' is derived and loads model from {self._base.name()}")
+            return self._base.load(key)
 
         obj = self.model_manager.load(self.name(), key, self.serializer_backend())
 
@@ -185,6 +196,10 @@ class InferenceModel(object):
         Method for deleting a model.
         :param key: The key
         """
+
+        if self._base is not None:
+            self.logger.info(f"'{self.name()}' is derived and cannot delete any instances, skipping")
+            return self
 
         self.model_manager.delete(self.name(), key, self.serializer_backend())
         return self

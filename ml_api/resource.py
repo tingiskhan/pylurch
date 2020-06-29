@@ -6,6 +6,7 @@ from typing import Dict
 from .inference import InferenceModel
 from .schemas import PostParser, PutParser, GetParser, PatchParser
 from .schemas import PostResponse, PutResponse, GetResponse, PatchResponse
+from falcon.status_codes import HTTP_200, HTTP_400
 
 
 class ModelResource(object):
@@ -25,11 +26,12 @@ class ModelResource(object):
 
     def _apply_and_parse(self, meth, request, res, parser, resp):
         if meth in (self._get, self._delete):
-            temp = meth(**parser.load(request.params))
+            temp, status = meth(**parser.load(request.params))
         else:
-            temp = meth(**parser.load(request.media))
+            temp, status = meth(**parser.load(request.media))
 
         res.media = resp.dump(temp)
+        res.status = status
 
         return res
 
@@ -71,7 +73,7 @@ class ModelResource(object):
 
         if status not in (ModelStatus.Unknown, ModelStatus.Failed) and not retrain:
             self.logger.info('Model already exists, and no retrain requested')
-            return {'status': status, 'model_key': key}
+            return {'status': status, 'model_key': key}, HTTP_200
 
         # ===== Define model ===== #
         modkwargs = modkwargs or dict()
@@ -84,9 +86,9 @@ class ModelResource(object):
 
         if status == ModelStatus.Running:
             if retrain:
-                return {'status': status, 'model_key': key}, 400
+                return {'status': status, 'model_key': key}, HTTP_200
 
-            return {'status': status, 'model_key': key}
+            return {'status': status, 'model_key': key}, HTTP_200
 
         # ===== Let it persist run first ===== #
         self.model_resource.pre_model_start(key)
@@ -94,19 +96,19 @@ class ModelResource(object):
         # ===== Start background task ===== #
         self.queue_meth(key, self.model_resource.do_run, model, x, key, **akws)
 
-        return {'status': self.model_resource.check_status(key), 'model_key': key}
+        return {'status': self.model_resource.check_status(key), 'model_key': key}, HTTP_200
 
     @custom_error
     def _post(self, model_key: str, x: str, orient: str, as_array: bool, kwargs: Dict[str, object]):
         status = self.model_resource.check_status(model_key)
 
         if status != ModelStatus.Done:
-            return {'data': None, 'orient': orient}, 400
+            return {'data': None, 'orient': orient}, HTTP_400
 
         mod = self.model_resource.load(model_key)
 
         if mod is None:
-            return {'data': None, 'orient': orient}, 400
+            return {'data': None, 'orient': orient}, HTTP_400
 
         self.logger.info(f'Predicting values using model {self.model_resource.name()}')
 
@@ -122,20 +124,20 @@ class ModelResource(object):
             'orient': orient,
         }
 
-        return resp
+        return resp, HTTP_200
 
     @custom_error
     def _get(self, model_key):
         status = self.model_resource.check_status(model_key)
 
-        return {'status': status}
+        return {'status': status}, HTTP_200
 
     @custom_error
     def _patch(self, model_key: str, x: str, orient: str, y: str = None):
         status = self.model_resource.check_status(model_key)
 
         if status != ModelStatus.Done:
-            return {'status': status}
+            return {'status': status}, HTTP_200
 
         model = self.model_resource.load(model_key)
         x = self.parse_data(x, orient=orient)
@@ -150,7 +152,7 @@ class ModelResource(object):
         # ===== Start background task ===== #
         self.queue_meth(model_key, self.model_resource.do_update, model, x, model_key)
 
-        return {'status': self.model_resource.check_status(model_key)}
+        return {'status': self.model_resource.check_status(model_key)}, HTTP_200
 
     @custom_error
     def _delete(self, model_key):
@@ -161,6 +163,6 @@ class ModelResource(object):
             self.logger.info(f'Successfully deleted model with key: {model_key}')
         except Exception as e:
             self.logger.exception(f'Failed to delete object with key {model_key}', e)
-            return {'status': ModelStatus.Failed}
+            return {'status': ModelStatus.Failed}, HTTP_200
 
-        return {'status': ModelStatus.Done}
+        return {'status': ModelStatus.Done}, HTTP_200
