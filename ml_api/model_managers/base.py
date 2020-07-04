@@ -119,6 +119,17 @@ class BaseModelManager(object):
 
         return schema['status']
 
+    def get(self, name: str, key: str, backend: SerializerBackend, status: ModelStatus) -> Dict[str, object]:
+        """
+        Get the given session of model with `name` by ways of `key`. Returns the session represented as a dictionary
+        :param name: The name of the model
+        :param key: The hash key
+        :param backend: The backend
+        :param status: If to filter on status
+        """
+
+        return self._get_session(name, key, backend, status)
+
     def load(self, name: str, key: str, backend: SerializerBackend) -> bytes or None:
         """
         Loads the model.
