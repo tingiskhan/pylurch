@@ -58,7 +58,7 @@ class InferenceModel(object):
 
         # ===== Fit/update ===== #
         try:
-            res = func(model, x, **kwargs)
+            res = func(model, x, key=key, **kwargs)
             self.logger.info(f"Successfully finished training '{self.name()}' with '{key}'")
         except Exception as e:
             self.logger.exception(f"Failed '{self.name()}' with '{key}'", e)
@@ -121,23 +121,27 @@ class InferenceModel(object):
         elif self.serializer_backend() == SerializerBackend.Dill:
             return dill.loads(bytestring)
 
-    def fit(self, model: object, x: pd.DataFrame, y: pd.DataFrame = None, **kwargs: Dict[str, object]) -> object:
+    def fit(self, model: object, x: pd.DataFrame, y: pd.DataFrame = None, key: str = None,
+            **kwargs: Dict[str, object]) -> object:
         """
         Fits the model
         :param model: The model to fit
         :param x: The data
         :param y: The response data (if any)
+        :param key: The key of the current model instance
         :param kwargs: Any additional key worded arguments
         """
 
         raise NotImplementedError()
 
-    def update(self, model: object, x: pd.DataFrame, y: pd.DataFrame = None, **kwargs: Dict[str, object]) -> object:
+    def update(self, model: object, x: pd.DataFrame, y: pd.DataFrame = None, key: str = None,
+               **kwargs: Dict[str, object]) -> object:
         """
         Fits the model
         :param model: The model to update
         :param x: The data
         :param y: The response data (if any)
+        :param key: The key of the current model instance
         :param kwargs: Any additional key worded arguments
         """
 
