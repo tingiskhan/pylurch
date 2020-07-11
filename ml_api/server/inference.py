@@ -217,7 +217,7 @@ class InferenceModel(object):
         if model is None:
             return enums.ModelStatus.Unknown
 
-        session = self.ts_intf.get(lambda u: (u.model_id == model.id) and (u.hash_key == key))
+        session = self.ts_intf.get(lambda u: (u.model_id == model.id) & (u.hash_key == key))
         latest = sorted(session, key=lambda u: u.id, reverse=True)
 
         return latest[0].status if any(latest) else enums.ModelStatus.Unknown
@@ -258,7 +258,7 @@ class InferenceModel(object):
             return None
 
         sessions = self.ts_intf.get(
-            lambda u: (u.model_id == mod.id) and (u.hash_key == key) and (u.status == enums.ModelStatus.Done)
+            lambda u: (u.model_id == mod.id) & (u.hash_key == key) & (u.status == enums.ModelStatus.Done)
         )
 
         latest = sorted(sessions, key=lambda u: u.id, reverse=True)
