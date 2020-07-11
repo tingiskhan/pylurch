@@ -14,9 +14,9 @@ class BaseMixin(object):
     }
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    upd_at = Column(DateTime, nullable=True, default=datetime.now())
-    upd_by = Column(String(255), nullable=False, default=platform.node(), onupdate=platform.node())
-    last_update = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    upd_at = Column(DateTime, nullable=True, default=datetime.now)
+    upd_by = Column(String(255), nullable=False, default=platform.node, onupdate=platform.node)
+    last_update = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 Base = declarative_base()

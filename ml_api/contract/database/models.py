@@ -12,7 +12,7 @@ class TrainingSession(BaseMixin, Base):
     model_id = Column(Integer, ForeignKey(Model.id))
     hash_key = Column(String(255), nullable=False)
 
-    start_time = Column(DateTime, nullable=False)
+    start_time = Column(DateTime, nullable=False, default=datetime.now)
     end_time = Column(DateTime, nullable=False, default=datetime.max)
 
     status = Column(Enum(ModelStatus), nullable=False)
