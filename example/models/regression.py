@@ -1,8 +1,8 @@
-from ml_api.inference import InferenceModel
+from ml_api.server.inference import InferenceModel
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.linear_model import LinearRegression, LogisticRegressionCV
-from ml_api.enums import SerializerBackend
+from ml_api.contract.enums import SerializerBackend
 
 
 class LinearRegressionModel(InferenceModel):
@@ -16,24 +16,18 @@ class LinearRegressionModel(InferenceModel):
 
         return convert_sklearn(model, self.name(), inputs).SerializeToString()
 
-    def fit(self, model, x, y=None, **kwargs):
+    def fit(self, model: LinearRegression, x, y=None, **kwargs):
         return model.fit(x, y)
 
     def make_model(self, **kwargs):
         return LinearRegression(**kwargs)
 
-    def name(self):
-        return 'linear-regression'
-
-    def add_metadata(self, model, **kwargs):
+    def add_metadata(self, model: LinearRegression, **kwargs):
         return {
             'score': model.score(kwargs['x'], kwargs['y'])
         }
 
 
 class LogisticRegressionModel(LinearRegressionModel):
-    def name(self):
-        return 'logistic-regression'
-
     def make_model(self, **kwargs):
         return LogisticRegressionCV(**kwargs)

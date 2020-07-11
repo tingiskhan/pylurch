@@ -32,6 +32,8 @@ setup(
         'dill',
         'pyyaml',
         'marshmallow',
-        'marshmallow-enum'
+        'marshmallow-enum',
+        'marshmallow-sqlalchemy',
+        'dateparser'
     ]
 )

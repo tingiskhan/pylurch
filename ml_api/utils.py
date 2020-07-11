@@ -5,6 +5,7 @@ from falcon.errors import HTTPBadRequest
 from typing import Iterable, Callable, Dict
 from pandas._typing import FrameOrSeries
 from falcon.status_codes import HTTP_500
+import logging
 
 
 def hash_series(*args: Iterable[FrameOrSeries]) -> str:
@@ -30,3 +31,23 @@ def custom_error(func: Callable[[object, Iterable, Dict], object]):
             return {'message': str(e)}, HTTP_500
 
     return wrap
+
+
+def make_base_logger(name: str) -> logging.Logger:
+    """
+    Helper method for generating a simple base logger.
+    :param name: The name of the logging module
+    """
+
+    logger = logging.getLogger(name)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(name)s: %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    logger.setLevel(logging.DEBUG)
+
+    return logger

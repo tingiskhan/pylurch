@@ -1,11 +1,10 @@
 import pandas as pd
-from .utils import custom_error
+from ml_api.utils import custom_error
 from hashlib import sha256
-from .enums import ModelStatus
+from ml_api.contract.enums import ModelStatus
 from typing import Dict
-from .inference import InferenceModel
-from .schemas import PostParser, PutParser, GetParser, PatchParser
-from .schemas import PostResponse, PutResponse, GetResponse, PatchResponse
+from ml_api.server.inference import InferenceModel
+import ml_api.contract.schemas as sc
 from falcon.status_codes import HTTP_200, HTTP_400
 
 
@@ -14,7 +13,7 @@ class ModelResource(object):
         """
         Base object for exposing model object.
         :param model_resource: The model resource
-        :param queue_meth:
+        :param queue_meth: The method used for queuing tasks
         """
 
         self.model_resource = model_resource
@@ -25,7 +24,7 @@ class ModelResource(object):
         return self.model_resource.logger
 
     def _apply_and_parse(self, meth, request, res, parser, resp):
-        if meth in (self._get, self._delete):
+        if meth == self._get:
             temp, status = meth(**parser.load(request.params))
         else:
             temp, status = meth(**parser.load(request.media))
@@ -36,19 +35,16 @@ class ModelResource(object):
         return res
 
     def on_get(self, req, res):
-        return self._apply_and_parse(self._get, req, res, GetParser(), GetResponse())
+        return self._apply_and_parse(self._get, req, res, sc.GetParser(), sc.GetResponse())
 
     def on_put(self, req, res):
-        return self._apply_and_parse(self._put, req, res, PutParser(), PutResponse())
+        return self._apply_and_parse(self._put, req, res, sc.PutParser(), sc.PutResponse())
 
     def on_post(self, req, res):
-        return self._apply_and_parse(self._post, req, res, PostParser(), PostResponse())
+        return self._apply_and_parse(self._post, req, res, sc.PostParser(), sc.PostResponse())
 
     def on_patch(self, req, res):
-        return self._apply_and_parse(self._patch, req, res, PatchParser(), PatchResponse())
-
-    def on_delete(self, req, res):
-        return self._apply_and_parse(self._delete, req, res, GetParser(), GetResponse())
+        return self._apply_and_parse(self._patch, req, res, sc.PatchParser(), sc.PatchResponse())
 
     def parse_data(self, data: str, **kwargs) -> pd.DataFrame:
         """
@@ -72,7 +68,7 @@ class ModelResource(object):
         status = self.model_resource.check_status(key)
 
         if status not in (ModelStatus.Unknown, ModelStatus.Failed) and not retrain:
-            self.logger.info('Model already exists, and no retrain requested')
+            self.logger.info(f"Instance '{key}' of '{self.model_resource.name()}' already exists, no retrain requested")
             return {'status': status, 'model_key': key}, HTTP_200
 
         # ===== Define model ===== #
@@ -91,10 +87,10 @@ class ModelResource(object):
             return {'status': status, 'model_key': key}, HTTP_200
 
         # ===== Let it persist run first ===== #
-        self.model_resource.pre_model_start(key)
+        session = self.model_resource.initialize_training(key)
 
         # ===== Start background task ===== #
-        self.queue_meth(key, self.model_resource.do_run, model, x, key, **akws)
+        self.queue_meth(key, self.model_resource.do_run, model, x, session, **akws)
 
         return {'status': self.model_resource.check_status(key), 'model_key': key}, HTTP_200
 
@@ -110,7 +106,7 @@ class ModelResource(object):
         if mod is None:
             return {'data': None, 'orient': orient}, HTTP_400
 
-        self.logger.info(f'Predicting values using model {self.model_resource.name()}')
+        self.logger.info(f"Predicting values using model '{self.model_resource.name()}' and instance '{model_key}'")
 
         x_hat = self.model_resource.predict(mod, self.parse_data(x, orient=orient), **kwargs)
 
@@ -147,22 +143,9 @@ class ModelResource(object):
             kwargs['y'] = self.parse_data(y, orient=orient)
 
         # ===== Let it persist run first ===== #
-        self.model_resource.pre_model_start(model_key)
+        session = self.model_resource.initialize_training(model_key)
 
         # ===== Start background task ===== #
-        self.queue_meth(model_key, self.model_resource.do_update, model, x, model_key)
+        self.queue_meth(model_key, self.model_resource.do_update, model, x, session)
 
         return {'status': self.model_resource.check_status(model_key)}, HTTP_200
-
-    @custom_error
-    def _delete(self, model_key):
-        self.logger.info(f'Deleting model with key: {model_key}')
-
-        try:
-            self.model_resource.delete(model_key)
-            self.logger.info(f'Successfully deleted model with key: {model_key}')
-        except Exception as e:
-            self.logger.exception(f'Failed to delete object with key {model_key}', e)
-            return {'status': ModelStatus.Failed}, HTTP_200
-
-        return {'status': ModelStatus.Done}, HTTP_200

@@ -10,7 +10,7 @@ Please note that the solution is something I've developed in my own time and is 
 
 Some (key) differences between this library and the libraries usually seen on the Medium blogs:
 1. Abstracts away the fit/prediction logic for easier deployment of new models. 
-2. Provides database model for storing fitted models as binaries with meta data instead of files. But is possible to store as files.
+2. Provides database model for storing fitted models as binaries.
 3. Allows using different backends for serializing the models, e.g. enables easy serialization to [ONNX](https://github.com/onnx/onnx).
 
 ## Install
@@ -33,11 +33,10 @@ You use the API as you would any REST based API. Every model exposes the five en
      7. `name`: Whether to name the data set, thus deriving the internal key from this name instead of the hash of the data.  
  2. `post`: Corresponds to sklearn's `predict`. **Parameters**: corresponds to i., iii. from 1. as well as `model_key`.       
  3. `patch`: Corresponds to updating an existing model using new data. Only applies to a few models in `sklearn`, and as such needs to be overridden by the user. **Parameters**: corresponds to i., ii., and iii. of 1, as well as `model_key`.
- 4. `delete`: Deletes all sessions of a model with specified key. **Parameters**: Only `model_key` is required.
- 5. `get`: Checks the status of the model, i.e. is it still training or can we use it for prediction. **Parameters**: Only `model_key`.
+ 4. `get`: Checks the status of the latest training session specified by `key`. **Parameters**: Only `model_key`.
  
  ## Example
- A really trivial example follows below. It's assumed that you have started the server locally on port 5000, which is done as 
+ A really trivial example follows below. Start by serving the model, we'll use port 8080. 
  ```python
 from example.app import init_app
 from waitress import serve 
@@ -51,7 +50,7 @@ if __name__ == '__main__':
  ```python
 import pandas as pd
 import numpy as np
-from ml_api.interfaces import GenericModelInterface
+from ml_api.contract.interfaces import GenericModelInterface
 
 # ===== Generate some dummy data ===== #
 x = pd.DataFrame(np.random.normal(size=(10000, 10)))
@@ -66,3 +65,5 @@ yhat.index = yhat.index.astype(int)
 
 print(f'Precision is: {(yhat.sort_index() == y).mean():.2%}')
  ```
+We could also repeat the above training and prediction using a neural network instead by
+just changing the `endpoint` parameter of `GenericModelInterface` to `nn`.

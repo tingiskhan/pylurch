@@ -1,13 +1,15 @@
 from falcon import API as Api
-from ml_api import ModelResource
-from ml_api.model_managers import SQLModelManager
+from ml_api.server.resources import ModelResource, DatabaseResource
+from ml_api.contract.database import Base
+from ml_api.contract.interfaces import LocalDatabaseInterface
 from concurrent.futures import ThreadPoolExecutor as Executor
-from logging import DEBUG, getLogger, StreamHandler, Formatter
+from ml_api.utils import make_base_logger
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
 import os
+from inspect import isclass
 
-# ===== Model manager =====#
+# ===== Database related ===== #
 sqlite = 'sqlite:///debug-database.db?check_same_thread=false'
 
 engine = create_engine(
@@ -17,8 +19,7 @@ engine = create_engine(
 
 Session = scoped_session(sessionmaker(bind=engine))
 
-model_manager = SQLModelManager(Session)
-model_manager.initialize()
+# ===== Executor for running background processes ===== #
 executor = Executor()
 
 
@@ -28,34 +29,44 @@ def queue_method(obj, key, func, *args, **kwargs):
     return
 
 
-logger = getLogger(__name__)
-
-ch = StreamHandler()
-ch.setLevel(DEBUG)
-
-formatter = Formatter('[%(asctime)s] %(levelname)s in %(name)s: %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-
-logger.setLevel(DEBUG)
-
-
+# ===== Initialization script ===== #
 def init_app():
     api = Api()
 
     # ===== Initialize everything ===== #
-    model_manager.set_logger(logger)
+    Base.metadata.create_all(bind=engine)
+
+    # ===== Add database interface ===== #
+    import ml_api.contract.schemas as schemas
+    objs = [
+        s for k, s in vars(schemas).items() if
+        isclass(s) and issubclass(s, schemas.BaseSchema) and not k.startswith('Base')
+    ]
+
+    for o in objs:
+        api.add_route(f'/{o.endpoint()}', DatabaseResource(o, Session))
 
     # ===== Add models ===== #
-    from .models.regression import LinearRegressionModel, LogisticRegressionModel
+    from .models import LinearRegressionModel, LogisticRegressionModel, NeuralNetworkModel
+
+    intf = LocalDatabaseInterface(Session)
 
     api.add_route(
-        '/linreg', ModelResource(LinearRegressionModel('linear-regression', logger, model_manager), queue_method)
-    )
-    api.add_route(
-        '/logreg', ModelResource(LogisticRegressionModel('logistic-regression', logger, model_manager), queue_method)
+        '/linreg',
+        ModelResource(LinearRegressionModel(intf), queue_method)
     )
 
+    api.add_route(
+        '/logreg',
+        ModelResource(LogisticRegressionModel(intf), queue_method)
+    )
+
+    api.add_route(
+        '/nn',
+        ModelResource(NeuralNetworkModel(intf), queue_method)
+    )
+
+    logger = make_base_logger(__name__)
     logger.info('Successfully registered all views')
 
     return api
