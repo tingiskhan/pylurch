@@ -44,6 +44,13 @@ class TrainingSessionSchema(BaseSchema):
     byte_string = BytesField(required=False, allow_none=True)
 
 
+class LightTrainingSessionSchema(TrainingSessionSchema):
+    class Meta:
+        model = TrainingSession
+        include_fk = True
+        exclude = ('byte_string',)
+
+
 class MetaDataSchema(BaseSchema):
     class Meta:
         model = MetaData

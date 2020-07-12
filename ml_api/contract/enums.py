@@ -7,6 +7,7 @@ class ModelStatus(Enum):
     Failed = 'Failed'
     Cancelled = 'Cancelled'
     Unknown = 'Unknown'
+    Queued = 'Queued'
 
 
 class SerializerBackend(Enum):

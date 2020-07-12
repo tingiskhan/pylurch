@@ -12,4 +12,4 @@ class BaseSchema(SQLAlchemyAutoSchema):
         return cls.__name__.lower().replace('schema', '')
 
 
-from .model import TrainingSessionSchema, ModelSchema, MetaDataSchema
+from .model import TrainingSessionSchema, ModelSchema, MetaDataSchema, LightTrainingSessionSchema
