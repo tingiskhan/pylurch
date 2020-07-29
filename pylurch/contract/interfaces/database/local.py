@@ -7,14 +7,14 @@ from ....utils import make_base_logger
 
 
 class LocalDatabaseInterface(DatabaseInterface):
-    def __init__(self, session: Union[Session, scoped_session], logger: Logger = None):
+    def __init__(self, session: Union[Session, scoped_session], logger: Logger = None, **kwargs):
         """
         Interface for communicating with a database directly. Useful if you decide to expose the data models and
         ML models on the same server instance.
         :param session: Session manager
         """
 
-        super().__init__('')
+        super().__init__('', **kwargs)
         self._session = session
         self.logger = logger or make_base_logger(self.__class__.__name__)
 

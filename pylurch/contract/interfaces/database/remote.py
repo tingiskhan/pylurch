@@ -10,12 +10,13 @@ from ..base import BaseInterface
 
 
 class DatabaseInterface(BaseInterface):
-    def __init__(self, base):
+    def __init__(self, base, base_schema=BaseSchema):
         """
         An interface for defining and creating.
         """
         super().__init__(base, '')
         self._schema = None
+        self._base_schema = base_schema
 
     def make_interface(self, obj: Type[BaseMixin]):
         """
@@ -26,7 +27,7 @@ class DatabaseInterface(BaseInterface):
         """
 
         cp = copy(self)
-        schema = BaseSchema.get_schema(obj)
+        schema = self._base_schema.get_schema(obj)
         cp._ep = schema.endpoint()
         cp._schema = schema
 
