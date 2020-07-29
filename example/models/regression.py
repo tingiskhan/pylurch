@@ -1,8 +1,8 @@
-from ml_api.server.inference import InferenceModel
+from pylurch.server.inference import InferenceModel
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.linear_model import LinearRegression, LogisticRegressionCV
-from ml_api.contract.enums import SerializerBackend
+from pylurch.contract.enums import SerializerBackend
 
 
 class LinearRegressionModel(InferenceModel):

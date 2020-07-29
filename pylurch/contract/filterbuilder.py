@@ -2,7 +2,8 @@ from operator import eq, le, lt, ge, gt, ne, and_, or_
 from sqlalchemy import bindparam, DateTime, Date, Enum
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 from dateparser import parse
-from typing import Dict, Union
+from typing import Dict, Union, Type, List
+from .database import BaseMixin
 
 
 MAPPING = {
@@ -34,21 +35,18 @@ SERIALIZERS = {
 
 # TODO: Enum support is lacking now as enum value must be strictly equal to enum name...
 class FilterBuilder(object):
-    def __init__(self, obj):
+    def __init__(self, obj: Type[BaseMixin]):
         """
         Class for building filters from BinaryExpression or from json.
         :param obj: The object
-        :type obj: type
         """
 
         self._obj = obj
 
-    def to_json(self, be) -> Union[Dict[str, str], Dict[str, Dict[str, str]]]:
+    def to_json(self, be: BinaryExpression) -> Union[Dict[str, str], Dict[str, Dict[str, str]]]:
         """
         Constructs a JSON representation of a filter.
         :param be: The binary expression
-        :type be: sqlalchemy.BinaryExpression
-        :return: A dictionary of strings
         """
 
         if isinstance(be, BooleanClauseList):
@@ -71,12 +69,11 @@ class FilterBuilder(object):
 
         return res
 
-    def from_json(self, json) -> Union[BinaryExpression, BooleanClauseList]:
+    def from_json(self, json: Union[Dict[str, str], List[Dict[str, str]]]) -> Union[BinaryExpression,
+                                                                                    BooleanClauseList]:
         """
         Constructs a filter from a JSON representation
         :param json: The JSON
-        :type json: dict[str, str]|list[dict[str, str]]
-        :return: A BinaryExpression object
         """
 
         left = json['left']

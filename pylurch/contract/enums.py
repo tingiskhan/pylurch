@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ModelStatus(Enum):
+class Status(Enum):
     Running = 'Running'
     Done = 'Done'
     Failed = 'Failed'

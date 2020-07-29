@@ -5,24 +5,23 @@ class FitParser(Schema):
     x = f.String(required=True)
     orient = f.String(required=True)
     y = f.String(required=False)
+    name = f.String(required=True)
 
 
 class PutParser(FitParser):
-    name = f.String(required=True)
     modkwargs = f.Dict(required=False, missing=dict())
     algkwargs = f.Dict(required=False, missing=dict())
-    retrain = f.Boolean(required=False, missing=False)
 
 
 class GetParser(Schema):
-    model_key = f.String(required=True)
+    task_id = f.String(required=True)
 
 
 class PatchParser(FitParser, GetParser):
-    model_key = f.String(required=True)
+    old_name = f.String(required=True)
 
 
-class PostParser(PatchParser):
+class PostParser(FitParser):
     as_array = f.Boolean(required=False, missing=False)
     kwargs = f.Dict(required=False, missing=dict())
 

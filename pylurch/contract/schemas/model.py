@@ -1,7 +1,7 @@
 from marshmallow import fields as f, ValidationError
 from marshmallow_enum import EnumField
-from ..enums import SerializerBackend, ModelStatus
-from ..database import Model, TrainingSession, MetaData
+from ..enums import SerializerBackend
+from ..database import Model, TrainingSession, MetaData, UpdatedSession
 from . import BaseSchema
 
 
@@ -38,17 +38,14 @@ class TrainingSessionSchema(BaseSchema):
         model = TrainingSession
         include_fk = True
 
-    status = EnumField(ModelStatus, required=True)
     backend = EnumField(SerializerBackend, required=True)
-
     byte_string = BytesField(required=False, allow_none=True)
 
 
-class LightTrainingSessionSchema(TrainingSessionSchema):
+class UpdatedSessionSchema(BaseSchema):
     class Meta:
-        model = TrainingSession
+        model = UpdatedSession
         include_fk = True
-        exclude = ('byte_string',)
 
 
 class MetaDataSchema(BaseSchema):

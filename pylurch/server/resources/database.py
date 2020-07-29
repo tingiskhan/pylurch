@@ -1,7 +1,7 @@
-from ml_api.contract.schemas import BaseSchema
-from ml_api.contract.filterbuilder import FilterBuilder
+from pylurch.contract.schemas import BaseSchema
+from pylurch.contract.filterbuilder import FilterBuilder
 from typing import Union
-from ml_api.contract.utils import chunk, Constants
+from pylurch.contract.utils import chunk, Constants
 from sqlalchemy.orm import scoped_session, sessionmaker
 from falcon.status_codes import HTTP_500
 from logging import Logger

@@ -3,7 +3,7 @@ from time import sleep
 import pandas as pd
 from .base import BaseInterface
 from ..schemas import GetResponse, PutResponse, PostResponse
-from ..enums import ModelStatus
+from ..enums import Status
 import numpy as np
 import json
 
@@ -12,47 +12,55 @@ class GenericModelInterface(BaseInterface):
     def __init__(self, base, endpoint, **modkwargs):
         """
         Implements an interface for talking to models.
-        :param modkwargs: Any key worded arguments for the model to pass on instantiation
+        :param modkwargs: Any key worded arguments for the model to pass on instantiation. Only applies to training
         """
 
         super().__init__(base, endpoint)
         self._mk = modkwargs
 
-        self._key = None
+        self._name = None
+        self._task_id = None
         self._orient = 'columns'
 
-    def load(self, key: str):
+    def load(self, name: str):
         """
         Loads the model with specified key.
-        :param key: The key of the model to load
+        :param name: The name of the model to load
         """
 
-        self._key = key
+        self._name = name
 
         return self
 
     @property
-    def model_key(self) -> str:
-        return self._key
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def is_done(self) -> bool:
+        return self._check_done()
 
     @property
     def _address(self) -> str:
         return f'{self._base}/{self._ep}'
 
     def _check_done(self):
-        resp = GetResponse().load(self._exec_req(r.get, params={'model_key': self._key}))
+        if self._task_id is None:
+            raise ValueError(f"Cannot check the status when 'task_id' is set to 'None'!")
 
-        if resp['status'] == ModelStatus.Failed:
+        resp = GetResponse().load(self._exec_req(r.get, params={'task_id': self._task_id}))
+
+        if resp['status'] == Status.Failed:
             raise Exception('Something went wrong trying to train the model! Check server logs for further details')
 
-        return resp['status'] == ModelStatus.Done
+        return resp['status'] == Status.Done
 
-    def fit(self, x: pd.DataFrame, y: pd.DataFrame = None, name: str = None, wait: bool = True, **algkwargs):
+    def fit(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True, **algkwargs):
         """
         Method for fitting the model.
         :param x: The x-data
         :param y: The y-data (if any)
-        :param name: Whether to name the data
+        :param session_name: The name of the session
         :param wait: Whether to wait for it complete
         :param algkwargs: Any algorithm key words
         """
@@ -62,13 +70,11 @@ class GenericModelInterface(BaseInterface):
             'algkwargs': algkwargs,
             'modkwargs': self._mk,
             'orient': self._orient,
-            'retrain': algkwargs.pop('retrain', False)
+            'name': session_name
         }
 
         if y is not None:
             params['y'] = y.to_json(orient=self._orient)
-        if name:
-            params['name'] = name
 
         return self._train(r.put, wait=wait, json=params)
 
@@ -78,9 +84,15 @@ class GenericModelInterface(BaseInterface):
         if resp.status_code != 200:
             raise Exception(f'Got code {resp.status_code}: {resp.text}')
 
-        self._key = PutResponse().load(resp.json())['model_key']
+        resp = PutResponse().load(resp.json())
+        self._name = resp['session_name']
 
-        while wait and not self._check_done():
+        if resp['status'] == Status.Done:
+            return self
+
+        self._task_id = resp['task_id']
+
+        while wait and not self.is_done:
             sleep(5)
 
         return self
@@ -93,11 +105,11 @@ class GenericModelInterface(BaseInterface):
         considerably longer time than a corresponding sized numpy.ndarray.
         """
 
-        if not self._key:
-            raise ValueError('Must call `fit` first!')
+        if not self._name:
+            raise ValueError('Must call `fit` or `load` first!')
 
         params = {
-            'model_key': self._key,
+            'name': self._name,
             'x': x.to_json(orient=self._orient),
             'orient': self._orient,
             'as_array': as_array,
@@ -112,7 +124,7 @@ class GenericModelInterface(BaseInterface):
 
         return np.array(data)
 
-    def update(self, x: pd.DataFrame, y: pd.DataFrame = None, wait: bool = True):
+    def update(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True):
         """
         Updates the model. See docs of `fit` for docs pertaining to parameters.
         """
@@ -120,20 +132,11 @@ class GenericModelInterface(BaseInterface):
         params = {
             'x': x.to_json(orient=self._orient),
             'orient': self._orient,
-            'model_key': self._key
+            'old_name': self._name,
+            'name': session_name
         }
 
         if y is not None:
             params['y'] = y.to_json(orient=self._orient)
 
         return self._train(r.patch, wait=wait, json=params)
-
-    def delete(self, model_key: str):
-        """
-        Deletes all instances of a model with the model key.
-        :param model_key: The model key
-        """
-
-        req = r.delete(self._address, params={'model_key': model_key})
-
-        return self

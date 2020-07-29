@@ -11,5 +11,19 @@ class BaseSchema(SQLAlchemyAutoSchema):
 
         return cls.__name__.lower().replace('schema', '')
 
+    @classmethod
+    def get_schemas(cls):
+        subs = cls.__subclasses__()
 
-from .model import TrainingSessionSchema, ModelSchema, MetaDataSchema, LightTrainingSessionSchema
+        for s in subs:
+            subs.extend(s.get_schemas())
+
+        return subs
+
+    @classmethod
+    def get_schema(cls, obj):
+        return next(s for s in cls.get_schemas() if s.Meta.model == obj)
+
+
+from .model import TrainingSessionSchema, ModelSchema, MetaDataSchema, UpdatedSessionSchema
+from .task import TaskSchema, TaskMetaSchema

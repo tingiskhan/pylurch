@@ -1,13 +1,12 @@
-from ..database import BaseMixin
+from ...database import BaseMixin, SERIALIZATION_IGNORE
 from typing import List, Callable
 from copy import copy
-from ..database import SERIALIZATION_IGNORE
 from requests import post, put, delete, patch
-from ..filterbuilder import FilterBuilder
-from ..utils import chunk, Constants
-from ..schemas import BaseSchema
+from ...filterbuilder import FilterBuilder
+from ...utils import chunk, Constants
+from ...schemas import BaseSchema
 from typing import Type
-from .base import BaseInterface
+from ..base import BaseInterface
 
 
 class DatabaseInterface(BaseInterface):
@@ -18,15 +17,16 @@ class DatabaseInterface(BaseInterface):
         super().__init__(base, '')
         self._schema = None
 
-    def make_interface(self, schema: Type[BaseSchema]):
+    def make_interface(self, obj: Type[BaseMixin]):
         """
         Makes an interface to the specified schema
-        :param schema: The schema to use
+        :param obj: The object to create for
         :return: DataBaseInterface
         :rtype: DatabaseInterface
         """
 
         cp = copy(self)
+        schema = BaseSchema.get_schema(obj)
         cp._ep = schema.endpoint()
         cp._schema = schema
 
@@ -47,9 +47,7 @@ class DatabaseInterface(BaseInterface):
         """
         Create an object of type specified by Meta object in `schema`.
         :param obj: The object, or objects
-        :type obj: object|list[object]
         :return: An object of type specified by Meta object in `schema`
-        :rtype: object|list[object]
         """
 
         if not isinstance(obj, (list, tuple)):
@@ -110,19 +108,17 @@ class DatabaseInterface(BaseInterface):
 
         return deleted
 
-    def update(self, obj: BaseMixin or List[BaseMixin]) -> List[BaseMixin]:
+    def update(self, objs: BaseMixin or List[BaseMixin]) -> List[BaseMixin]:
         """
         Updates an object with the new values.
-        :param obj: The object to update with new values
-        :type obj: object
+        :param objs: The object(s) to update with new values
         :return: The update object
-        :rtype: object
         """
 
-        if not isinstance(obj, (list, tuple)):
-            obj = [obj]
+        if not isinstance(objs, (list, tuple)):
+            objs = [objs]
 
-        dump = self._schema(many=True).dump(obj)
+        dump = self._schema(many=True).dump(objs)
         req = self._exec_req(patch, json=dump)
 
         return self._deserialize(req, many=True)

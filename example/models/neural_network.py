@@ -1,5 +1,5 @@
-from ml_api.contract import enums
-from ml_api.server import InferenceModel
+from pylurch.contract import enums
+from pylurch.server import InferenceModel
 import torch.nn as nn
 from pytorch_lightning import LightningModule, Trainer
 import torch
@@ -43,7 +43,7 @@ class NeuralNetworkModel(InferenceModel):
 
         return b.getvalue()
 
-    def fit(self, model: LightningModule, x, y=None, key=None, **kwargs):
+    def fit(self, model: LightningModule, x, y=None, **kwargs):
         trainer = Trainer()
 
         ds = TensorDataset(torch.from_numpy(x.values).float(), torch.from_numpy(y.values).float())

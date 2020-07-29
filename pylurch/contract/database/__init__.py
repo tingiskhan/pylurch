@@ -23,4 +23,5 @@ Base = declarative_base()
 
 SERIALIZATION_IGNORE = tuple(k for (k, v) in vars(BaseMixin).items() if isinstance(v, Column))
 
-from .models import MetaData, TrainingSession, Model
+from .task import Task, TaskMeta
+from .inference import MetaData, TrainingSession, Model, UpdatedSession
