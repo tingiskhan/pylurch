@@ -81,7 +81,7 @@ class InferenceModel(object):
         self.logger.info(f"Starting training of '{self.name()}' with '{name}' and using {x.shape[0]} observations")
 
         # ===== Fit/update ===== #
-        res = func(model, x, **kwargs)
+        res = func(model, x, name=name, **kwargs)
         self.logger.info(f"Successfully finished training '{self.name()}' with '{name}'")
 
         # ===== Save model ===== #
@@ -158,12 +158,14 @@ class InferenceModel(object):
         elif self.serializer_backend() == enums.SerializerBackend.Dill:
             return dill.loads(bytestring)
 
-    def fit(self, model: object, x: FrameOrArray, y: FrameOrArray, **kwargs: Dict[str, object]) -> object:
+    def fit(self, model: object, x: FrameOrArray, name: str, y: FrameOrArray = None,
+            **kwargs: Dict[str, object]) -> object:
         """
         Fits the model
         :param model: The model to fit
         :param x: The data
         :param y: The response data (if any)
+        :param name: The name of the session
         :param kwargs: Any additional key worded arguments
         """
 
