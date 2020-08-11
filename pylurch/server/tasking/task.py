@@ -96,8 +96,12 @@ class RQTask(TaskWrapper):
     Class for tasking queues with 'RQ'.
     """
 
+    def __init__(self, f, intf):
+        super().__init__(f, intf)
+        self._timeout = 2 * 3600
+
     def make_rqtask(self, queue: Queue):
-        return queue.create_job(self._f, args=self._args, kwargs=self._kwargs)
+        return queue.create_job(self._f, args=self._args, kwargs=self._kwargs, timeout=self._timeout)
 
     def initialize(self, key: str = None):
         task = db.Task(
