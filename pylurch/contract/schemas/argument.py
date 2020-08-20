@@ -17,7 +17,7 @@ class GetParser(Schema):
     task_id = f.String(required=True)
 
 
-class PatchParser(FitParser, GetParser):
+class PatchParser(FitParser):
     old_name = f.String(required=True)
 
 
