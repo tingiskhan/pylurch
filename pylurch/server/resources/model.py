@@ -95,11 +95,10 @@ class ModelResource(object):
             return resp, HTTP_200
 
         result = self.manager.get_result(task_id)
-
-        self.logger.info(f"Result corresponds to: {result}")
-
         if result is None:
             return resp, HTTP_200
+
+        self.logger.info(f"Got result for task id: {task_id}")
 
         resp.update(**result)
 
