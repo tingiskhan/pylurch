@@ -125,7 +125,7 @@ class GenericModelInterface(BaseInterface):
         if not as_array:
             return pd.read_json(resp["data"], orient=resp["orient"])
 
-        return np.array(resp["data"])
+        return np.array(json.loads(resp["data"]))
 
     def update(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True):
         """
