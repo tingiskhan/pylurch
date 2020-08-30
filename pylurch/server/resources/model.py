@@ -96,6 +96,8 @@ class ModelResource(object):
 
         result = self.manager.get_result(task_id)
 
+        self.logger.info(f"Result corresponds to: {result}")
+
         if result is None:
             return resp, HTTP_200
 
