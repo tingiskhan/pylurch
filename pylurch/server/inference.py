@@ -125,6 +125,21 @@ class InferenceModel(object):
 
         result = self._intf.make_interface(db.UpdatedSession).create(link)
 
+    def do_predict(self, model, x, orient, as_array=False, **kwargs):
+        x_hat = self.predict(model, self.parse_data(x, orient=orient), **kwargs)
+
+        if as_array and isinstance(x_hat, pd.DataFrame):
+            x_resp = x_hat.values.tolist()
+        elif isinstance(x_hat, pd.DataFrame):
+            x_resp = x_hat.to_json(orient=orient)
+        else:
+            x_resp = x_hat.tolist()
+
+        return {
+            "data": x_resp,
+            "orient": orient,
+        }
+
     def make_model(self, **kwargs) -> object:
         """
         Creates the model

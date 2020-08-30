@@ -82,24 +82,9 @@ class ModelResource(object):
             return {"task_id": None, "status": Status.Unknown}, HTTP_400
 
         self.logger.info(f"Predicting values using model '{self.model_resource.name()}' and instance '{name}'")
-        key = self.manager.enqueue(self._do_predict, model, x, orient, as_array=as_array, **kwargs)
+        key = self.manager.enqueue(self.model_resource.do_predict, model, x, orient, as_array=as_array, **kwargs)
 
         return {"task_id": key, "status": self.manager.check_status(key)}, HTTP_200
-
-    def _do_predict(self, model, x, orient, as_array=False, **kwargs):
-        x_hat = self.model_resource.predict(model, self.model_resource.parse_data(x, orient=orient), **kwargs)
-
-        if as_array and isinstance(x_hat, pd.DataFrame):
-            x_resp = x_hat.values.tolist()
-        elif isinstance(x_hat, pd.DataFrame):
-            x_resp = x_hat.to_json(orient=orient)
-        else:
-            x_resp = x_hat.tolist()
-
-        return {
-            "data": x_resp,
-            "orient": orient,
-        }
 
     @custom_error
     def _get(self, task_id):
