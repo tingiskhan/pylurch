@@ -37,6 +37,7 @@ setup(
         'marshmallow-enum',
         'marshmallow-sqlalchemy',
         'dateparser',
-        'rq'
+        'rq',
+        'cachetools'
     ]
 )

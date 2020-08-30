@@ -18,6 +18,9 @@ class Decorator(object):
 
             # ===== Update task status ===== #
             self._task.status = e.Status.Done
+
+            return res
+        
         except Exception as exc:
             self._task.status = e.Status.Failed
 

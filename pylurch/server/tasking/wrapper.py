@@ -1,6 +1,5 @@
 from typing import Callable, Tuple, Dict, Any
 from pylurch.contract import enums as e, interfaces as i, database as db
-from datetime import datetime
 from logging import Logger
 from .task import TaskWrapper
 from ...utils import make_base_logger
@@ -37,3 +36,6 @@ class BaseWrapper(object):
             return e.Status.Unknown
 
         return task.status
+
+    def get_result(self, task_id: str) -> Any:
+        raise NotImplementedError()

@@ -11,7 +11,7 @@ def init_app():
     api = Api()
 
     # ===== Add models ===== #
-    from .models import LinearRegressionModel, LogisticRegressionModel, NeuralNetworkModel
+    from .models import LinearRegressionModel, LogisticRegressionModel
 
     intf = DatabaseInterface(os.environ.get('DATABASE_URI', 'http://localhost:8081'))
     manager = ExecutorWrapper(intf)
@@ -24,11 +24,6 @@ def init_app():
     api.add_route(
         '/logreg',
         ModelResource(LogisticRegressionModel(intf), manager)
-    )
-
-    api.add_route(
-        '/nn',
-        ModelResource(NeuralNetworkModel(intf), manager)
     )
 
     logger = make_base_logger(__name__)

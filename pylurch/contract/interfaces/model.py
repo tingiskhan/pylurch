@@ -20,7 +20,7 @@ class GenericModelInterface(BaseInterface):
 
         self._name = None
         self._task_id = None
-        self._orient = 'columns'
+        self._orient = "columns"
 
     def load(self, name: str):
         """
@@ -36,24 +36,23 @@ class GenericModelInterface(BaseInterface):
     def name(self) -> str:
         return self._name
 
-    @property
-    def is_done(self) -> bool:
-        return self._check_done()
+    def is_done(self, task_id: str = None) -> bool:
+        return self._check_done(task_id)
 
     @property
     def _address(self) -> str:
         return f'{self._base}/{self._ep}'
 
-    def _check_done(self):
-        if self._task_id is None:
+    def _check_done(self, task_id: str = None):
+        if (task_id or self._task_id) is None:
             raise ValueError(f"Cannot check the status when 'task_id' is set to 'None'!")
 
-        resp = GetResponse().load(self._exec_req(r.get, params={'task_id': self._task_id}))
+        resp = GetResponse().load(self._exec_req(r.get, params={"task_id": task_id or self._task_id}))
 
-        if resp['status'] == Status.Failed:
+        if resp["status"] == Status.Failed:
             raise Exception('Something went wrong trying to train the model! Check server logs for further details')
 
-        return resp['status'] == Status.Done
+        return resp["status"] == Status.Done
 
     def fit(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True, **algkwargs):
         """
@@ -66,11 +65,11 @@ class GenericModelInterface(BaseInterface):
         """
 
         params = {
-            'x': x.to_json(orient=self._orient),
-            'algkwargs': algkwargs,
-            'modkwargs': self._mk,
-            'orient': self._orient,
-            'name': session_name
+            "x": x.to_json(orient=self._orient),
+            "algkwargs": algkwargs,
+            "modkwargs": self._mk,
+            "orient": self._orient,
+            "name": session_name
         }
 
         if y is not None:
@@ -82,17 +81,17 @@ class GenericModelInterface(BaseInterface):
         resp = meth(self._address, **kwargs)
 
         if resp.status_code != 200:
-            raise Exception(f'Got code {resp.status_code}: {resp.text}')
+            raise Exception(f"Got code {resp.status_code}: {resp.text}")
 
         resp = PutResponse().load(resp.json())
-        self._name = resp['session_name']
+        self._name = resp["session_name"]
 
-        if resp['status'] == Status.Done:
+        if resp["status"] == Status.Done:
             return self
 
-        self._task_id = resp['task_id']
+        self._task_id = resp["task_id"]
 
-        while wait and not self.is_done:
+        while wait and not self.is_done():
             sleep(5)
 
         return self
@@ -106,23 +105,27 @@ class GenericModelInterface(BaseInterface):
         """
 
         if not self._name:
-            raise ValueError('Must call `fit` or `load` first!')
+            raise ValueError("Must call 'fit' or 'load' first!")
 
         params = {
-            'name': self._name,
-            'x': x.to_json(orient=self._orient),
-            'orient': self._orient,
-            'as_array': as_array,
-            'kwargs': kwargs or dict()
+            "name": self._name,
+            "x": x.to_json(orient=self._orient),
+            "orient": self._orient,
+            "as_array": as_array,
+            "kwargs": kwargs or dict()
         }
 
         resp = PostResponse().load(self._exec_req(r.post, json=params))
-        data = json.loads(resp['data'])
+
+        while not self.is_done(resp["task_id"]):
+            sleep(5)
+
+        resp = GetResponse().load(self._exec_req(r.get, params={"task_id": resp["task_id"]}))
 
         if not as_array:
-            return pd.DataFrame.from_dict(data, orient=resp['orient'])
+            return pd.read_json(resp["data"], orient=resp["orient"])
 
-        return np.array(data)
+        return np.array(resp["data"])
 
     def update(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True):
         """
@@ -130,13 +133,13 @@ class GenericModelInterface(BaseInterface):
         """
 
         params = {
-            'x': x.to_json(orient=self._orient),
-            'orient': self._orient,
-            'old_name': self._name,
-            'name': session_name
+            "x": x.to_json(orient=self._orient),
+            "orient": self._orient,
+            "old_name": self._name,
+            "name": session_name
         }
 
         if y is not None:
-            params['y'] = y.to_json(orient=self._orient)
+            params["y"] = y.to_json(orient=self._orient)
 
         return self._train(r.patch, wait=wait, json=params)

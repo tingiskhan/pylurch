@@ -63,7 +63,7 @@ class ModelResource(object):
 
         if model is not None:
             self.logger.info(f"Instance '{name}' of '{self.model_resource.name()}' already exists")
-            return {'status': Status.Done, 'session_name': name}, HTTP_200
+            return {"status": Status.Done, "session_name": name}, HTTP_200
 
         # ===== Define model ===== #
         model = self.model_resource.make_model(**modkwargs)
@@ -71,7 +71,7 @@ class ModelResource(object):
         # ===== Start background task ===== #
         key = self.manager.enqueue(self.model_resource.do_run, model, x, name=name, **akws)
 
-        return {'task_id': key, 'status': self.manager.check_status(key), 'session_name': name}, HTTP_200
+        return {"task_id": key, "status": self.manager.check_status(key), "session_name": name}, HTTP_200
 
     @custom_error
     def _post(self, name: str, x: str, orient: str, as_array: bool, kwargs: Dict[str, object]):
@@ -79,10 +79,14 @@ class ModelResource(object):
 
         if model is None:
             self.logger.info(f"No model of '{self.model_resource.name()}' and instance '{name}' exists")
-            return {'data': None, 'orient': orient}, HTTP_400
+            return {"task_id": None, "status": Status.Unknown}, HTTP_400
 
         self.logger.info(f"Predicting values using model '{self.model_resource.name()}' and instance '{name}'")
+        key = self.manager.enqueue(self._do_predict, model, x, orient, as_array=as_array, **kwargs)
 
+        return {"task_id": key, "status": self.manager.check_status(key)}, HTTP_200
+
+    def _do_predict(self, model, x, orient, as_array=False, **kwargs):
         x_hat = self.model_resource.predict(model, self.model_resource.parse_data(x, orient=orient), **kwargs)
 
         if as_array and isinstance(x_hat, pd.DataFrame):
@@ -92,18 +96,27 @@ class ModelResource(object):
         else:
             x_resp = x_hat.tolist()
 
-        resp = {
-            'data': x_resp,
-            'orient': orient,
+        return {
+            "data": x_resp,
+            "orient": orient,
         }
-
-        return resp, HTTP_200
 
     @custom_error
     def _get(self, task_id):
         status = self.manager.check_status(task_id)
 
-        return {'status': status}, HTTP_200
+        resp = {"status": status}
+        if status != Status.Done:
+            return resp, HTTP_200
+
+        result = self.manager.get_result(task_id)
+
+        if result is None:
+            return resp, HTTP_200
+
+        resp.update(**result)
+
+        return resp, HTTP_200
 
     # TODO: Needs fixing
     @custom_error
@@ -112,15 +125,15 @@ class ModelResource(object):
 
         if model is None:
             self.logger.info(f"No model of '{self.model_resource.name()}' and instance '{name}' exists")
-            return {'status': Status.Unknown}, HTTP_400
+            return {"status": Status.Unknown}, HTTP_400
 
         x = self.model_resource.parse_data(x, orient=orient)
 
         kwargs = dict()
         if y is not None:
-            kwargs['y'] = self.model_resource.parse_data(y, orient=orient)
+            kwargs["y"] = self.model_resource.parse_data(y, orient=orient)
 
         # ===== Let it persist run first ===== #
         key = self.manager.enqueue(self.model_resource.do_update, model, x, old_name=old_name, name=name, **kwargs)
 
-        return {'status': self.manager.check_status(name), 'task_id': key, 'session_name': name}, HTTP_200
+        return {"status": self.manager.check_status(name), "task_id": key, "session_name": name}, HTTP_200

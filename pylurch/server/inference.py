@@ -108,10 +108,10 @@ class InferenceModel(object):
 
         return session
 
-    def do_run(self, model: object, x: FrameOrArray, name: str, **kwargs) -> db.TrainingSession:
-        return self._run_model(self.fit, model, x, name=name, **kwargs)
+    def do_run(self, model: object, x: FrameOrArray, name: str, **kwargs):
+        self._run_model(self.fit, model, x, name=name, **kwargs)
 
-    def do_update(self, model: object, x: FrameOrArray, old_name: str, name: str, **kwargs) -> db.TrainingSession:
+    def do_update(self, model: object, x: FrameOrArray, old_name: str, name: str, **kwargs):
         res = self._run_model(self.update, model, x, name=name, **kwargs)
 
         dbmod = self.mod_intf.get(lambda u: u.name == self.name(), one=True)
@@ -124,8 +124,6 @@ class InferenceModel(object):
         )
 
         result = self._intf.make_interface(db.UpdatedSession).create(link)
-
-        return res
 
     def make_model(self, **kwargs) -> object:
         """

@@ -1,7 +1,7 @@
 from .task import RQTask
 from .wrapper import BaseWrapper
 from redis import Redis
-from rq import Queue
+from rq import Queue, job as j
 
 
 class RQWrapper(BaseWrapper):
@@ -23,3 +23,10 @@ class RQWrapper(BaseWrapper):
     def make_task(self, f, *args, **kwargs) -> RQTask:
         return RQTask(f, self._i, args=args, kwargs=kwargs)
 
+    def get_result(self, task_id):
+        job = j.Job.fetch(task_id)
+
+        if job.get_status() == "finished":
+            return job.result
+
+        return None

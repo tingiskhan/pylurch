@@ -3,18 +3,22 @@ from marshmallow_enum import EnumField
 from ..enums import Status
 
 
-class GetResponse(Schema):
+class Base(Schema):
     status = EnumField(Status)
 
 
-class PutResponse(GetResponse):
+class GetResponse(Base):
+    data = f.String(required=False)
+    orient = f.String(required=False)
+
+
+class PutResponse(Base):
     session_name = f.String(required=True)
     task_id = f.String(required=False)
 
 
-class PostResponse(Schema):
-    data = f.String(required=True)
-    orient = f.String(required=True)
+class PostResponse(Base):
+    task_id = f.String(required=True)
 
 
 class PatchResponse(PutResponse):
