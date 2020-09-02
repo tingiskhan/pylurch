@@ -1,3 +1,4 @@
 from .model import GenericModelInterface
 from .base import BaseInterface
-from .database import LocalDatabaseInterface, DatabaseInterface
+from .local import LocalDatabaseInterface
+from .remote import DatabaseInterface

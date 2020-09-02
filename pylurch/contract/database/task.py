@@ -18,3 +18,9 @@ class TaskMeta(BaseMixin, Base):
 
     key = Column(String(255), nullable=False)
     value = Column(String(255), nullable=False)
+
+
+class TaskException(BaseMixin, Base):
+    task_id = Column(Integer, ForeignKey(Task.id), nullable=False)
+    type_ = Column(String(), nullable=False)
+    message = Column(String(), nullable=False)

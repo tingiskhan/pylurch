@@ -6,6 +6,7 @@ from ..schemas import GetResponse, PutResponse, PostResponse
 from ..enums import Status
 import numpy as np
 import json
+from typing import Any
 
 
 class GenericModelInterface(BaseInterface):
@@ -36,14 +37,11 @@ class GenericModelInterface(BaseInterface):
     def name(self) -> str:
         return self._name
 
-    def is_done(self, task_id: str = None) -> bool:
-        return self._check_done(task_id)
-
     @property
     def _address(self) -> str:
         return f'{self._base}/{self._ep}'
 
-    def _check_done(self, task_id: str = None):
+    def _is_done(self, task_id: str = None) -> (bool, Any):
         if (task_id or self._task_id) is None:
             raise ValueError(f"Cannot check the status when 'task_id' is set to 'None'!")
 
@@ -52,7 +50,7 @@ class GenericModelInterface(BaseInterface):
         if resp["status"] == Status.Failed:
             raise Exception('Something went wrong trying to train the model! Check server logs for further details')
 
-        return resp["status"] == Status.Done
+        return resp["status"] == Status.Done, resp
 
     def fit(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True, **algkwargs):
         """
@@ -91,7 +89,9 @@ class GenericModelInterface(BaseInterface):
 
         self._task_id = resp["task_id"]
 
-        while wait and not self.is_done():
+        is_done = False
+        while wait and not is_done:
+            is_done, _ = self._is_done(resp["task_id"])
             sleep(5)
 
         return self
@@ -117,15 +117,15 @@ class GenericModelInterface(BaseInterface):
 
         resp = PostResponse().load(self._exec_req(r.post, json=params))
 
-        while not self.is_done(resp["task_id"]):
+        is_done = False
+        while not is_done:
+            is_done, pred_resp = self._is_done(resp["task_id"])
             sleep(5)
 
-        resp = GetResponse().load(self._exec_req(r.get, params={"task_id": resp["task_id"]}))
-
         if not as_array:
-            return pd.read_json(resp["data"], orient=resp["orient"])
+            return pd.read_json(pred_resp["data"], orient=pred_resp["orient"])
 
-        return np.array(json.loads(resp["data"]))
+        return np.array(json.loads(pred_resp["data"]))
 
     def update(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True):
         """

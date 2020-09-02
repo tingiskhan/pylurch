@@ -1,4 +1,5 @@
-from pylurch.contract.schemas import BaseSchema
+from pylurch.contract.schemas import DatabaseSchema
+from pylurch.contract.database import SERIALIZATION_IGNORE
 from pylurch.contract.filterbuilder import FilterBuilder
 from typing import Union
 from pylurch.contract.utils import chunk, Constants
@@ -9,7 +10,7 @@ from ...utils import make_base_logger
 
 
 class DatabaseResource(object):
-    def __init__(self, schema: BaseSchema, session_factory: Union[scoped_session, sessionmaker], logger: Logger = None):
+    def __init__(self, schema: DatabaseSchema, session_factory: Union[scoped_session, sessionmaker], logger: Logger = None):
         """
         Implements a base resources for exposing database models.
         :param schema: The schema to use, must be marshmallow.Schema
@@ -54,7 +55,7 @@ class DatabaseResource(object):
         return res
 
     def on_put(self, req, res):
-        objs = self.deserialize(req.media, many=True)
+        objs = self.deserialize(req.media, many=True, dump_only=SERIALIZATION_IGNORE)
         self.logger.info(f'Now trying to create {len(objs):n} objects')
         session = self.session_factory()
 

@@ -24,11 +24,11 @@ def custom_error(func: Callable[[object, Iterable, Dict], object]):
         try:
             return func(obj, *args, **kwargs)
         except Exception as e:
-            obj.logger.exception('Failed in task', e)
+            obj.logger.exception("Failed in task", e)
             if isinstance(e, HTTPBadRequest):
                 raise e
 
-            return {'message': str(e)}, HTTP_500
+            return {"message": str(e)}, HTTP_500
 
     return wrap
 
@@ -44,7 +44,7 @@ def make_base_logger(name: str) -> logging.Logger:
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(name)s: %(message)s')
+    formatter = logging.Formatter("[%(asctime)s] %(levelname)s in %(name)s: %(message)s")
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 

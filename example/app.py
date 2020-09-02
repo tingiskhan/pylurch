@@ -2,7 +2,8 @@ from falcon import API as Api
 from pylurch.server.resources import ModelResource
 from pylurch.contract.interfaces import DatabaseInterface
 from pylurch.utils import make_base_logger
-from pylurch.server.tasking import ExecutorWrapper
+from pylurch.server.tasking import RQWrapper
+from redis import Redis
 import os
 
 
@@ -13,20 +14,20 @@ def init_app():
     # ===== Add models ===== #
     from .models import LinearRegressionModel, LogisticRegressionModel
 
-    intf = DatabaseInterface(os.environ.get('DATABASE_URI', 'http://localhost:8081'))
-    manager = ExecutorWrapper(intf)
+    intf = DatabaseInterface(os.environ.get("DATABASE_URI", "http://localhost:8081"))
+    manager = RQWrapper(Redis(host=os.environ.get("REDIS_HOST"), port=os.environ.get("REDIS_PORT")), intf)
 
     api.add_route(
-        '/linreg',
+        "/linreg",
         ModelResource(LinearRegressionModel(intf), manager)
     )
 
     api.add_route(
-        '/logreg',
+        "/logreg",
         ModelResource(LogisticRegressionModel(intf), manager)
     )
 
     logger = make_base_logger(__name__)
-    logger.info('Successfully registered all views')
+    logger.info("Successfully registered all views")
 
     return api

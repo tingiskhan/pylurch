@@ -1,7 +1,7 @@
 from pylurch.contract import enums
 from pylurch.server import InferenceModel
 import torch.nn as nn
-# from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule, Trainer
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from io import BytesIO
@@ -34,7 +34,7 @@ class Net(LightningModule):
 
 
 class NeuralNetworkModel(InferenceModel):
-    def make_model(self, **kwargs):
+    def make_model(self, **kwargs) -> Net:
         return Net(**kwargs)
 
     def serialize(self, model, x, y=None):

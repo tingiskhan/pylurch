@@ -22,7 +22,9 @@ class Decorator(object):
             return res
         
         except Exception as exc:
-            self._task.status = e.Status.Failed
+            self._task.fail(exc)
+
+            raise exc
 
 
 class TaskWrapper(object):
@@ -79,6 +81,17 @@ class TaskWrapper(object):
 
         self._metas[key].key = key
         self._metas[key].value = value
+
+        return self
+
+    def fail(self, exc: Exception):
+        self._intf.make_interface(db.TaskException).create(db.TaskException(
+            task_id=self._db.id,
+            type_=exc.__class__.__name__,
+            message=str(exc)
+        ))
+
+        self.status = e.Status.Failed
 
         return self
 

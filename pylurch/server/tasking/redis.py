@@ -26,7 +26,7 @@ class RQWrapper(BaseWrapper):
     def get_result(self, task_id):
         job = j.Job.fetch(task_id, connection=self._conn)
 
-        if job.get_status() == "finished":
-            return job.result
+        if job is None:
+            return None
 
-        return None
+        return job.result

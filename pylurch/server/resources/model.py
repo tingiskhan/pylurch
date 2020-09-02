@@ -1,4 +1,3 @@
-import pandas as pd
 from pylurch.utils import custom_error
 from pylurch.contract.enums import Status
 from typing import Dict
@@ -65,11 +64,8 @@ class ModelResource(object):
             self.logger.info(f"Instance '{name}' of '{self.model_resource.name()}' already exists")
             return {"status": Status.Done, "session_name": name}, HTTP_200
 
-        # ===== Define model ===== #
-        model = self.model_resource.make_model(**modkwargs)
-
         # ===== Start background task ===== #
-        key = self.manager.enqueue(self.model_resource.do_run, model, x, name=name, **akws)
+        key = self.manager.enqueue(self.model_resource.do_run, modkwargs, x, name=name, **akws)
 
         return {"task_id": key, "status": self.manager.check_status(key), "session_name": name}, HTTP_200
 
@@ -82,7 +78,7 @@ class ModelResource(object):
             return {"task_id": None, "status": Status.Unknown}, HTTP_400
 
         self.logger.info(f"Predicting values using model '{self.model_resource.name()}' and instance '{name}'")
-        key = self.manager.enqueue(self.model_resource.do_predict, model, x, orient, as_array=as_array, **kwargs)
+        key = self.manager.enqueue(self.model_resource.do_predict, name, x, orient, as_array=as_array, **kwargs)
 
         return {"task_id": key, "status": self.manager.check_status(key)}, HTTP_200
 
@@ -120,6 +116,6 @@ class ModelResource(object):
             kwargs["y"] = self.model_resource.parse_data(y, orient=orient)
 
         # ===== Let it persist run first ===== #
-        key = self.manager.enqueue(self.model_resource.do_update, model, x, old_name=old_name, name=name, **kwargs)
+        key = self.manager.enqueue(self.model_resource.do_update, old_name, x, name=name, **kwargs)
 
         return {"status": self.manager.check_status(name), "task_id": key, "session_name": name}, HTTP_200

@@ -1,9 +1,9 @@
 from .remote import DatabaseInterface
-from ...utils import chunk, Constants
+from pylurch.contract.utils import chunk, Constants
 from logging import Logger
 from sqlalchemy.orm import Session, scoped_session
 from typing import Union
-from ....utils import make_base_logger
+from pylurch.utils import make_base_logger
 
 
 class LocalDatabaseInterface(DatabaseInterface):
@@ -14,7 +14,7 @@ class LocalDatabaseInterface(DatabaseInterface):
         :param session: Session manager
         """
 
-        super().__init__('', **kwargs)
+        super().__init__('')
         self._session = session
         self.logger = logger or make_base_logger(self.__class__.__name__)
 

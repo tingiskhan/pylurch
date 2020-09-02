@@ -108,11 +108,11 @@ class InferenceModel(object):
 
         return session
 
-    def do_run(self, model: object, x: FrameOrArray, name: str, **kwargs):
-        self._run_model(self.fit, model, x, name=name, **kwargs)
+    def do_run(self, modkwargs, x: FrameOrArray, name: str, **kwargs):
+        self._run_model(self.fit, self.make_model(**modkwargs), x, name=name, **kwargs)
 
-    def do_update(self, model: object, x: FrameOrArray, old_name: str, name: str, **kwargs):
-        res = self._run_model(self.update, model, x, name=name, **kwargs)
+    def do_update(self, old_name: str, x: FrameOrArray, name: str, **kwargs):
+        res = self._run_model(self.update, self.load(old_name), x, name=name, **kwargs)
 
         dbmod = self.mod_intf.get(lambda u: u.name == self.name(), one=True)
         old = self.ts_intf.get(lambda u: (u.session_name == old_name) & (u.model_id == dbmod.id), one=True)
@@ -125,8 +125,8 @@ class InferenceModel(object):
 
         result = self._intf.make_interface(db.UpdatedSession).create(link)
 
-    def do_predict(self, model, x, orient, as_array=False, **kwargs):
-        x_hat = self.predict(model, self.parse_data(x, orient=orient), **kwargs)
+    def do_predict(self, model_name: str, x, orient, as_array=False, **kwargs):
+        x_hat = self.predict(self.load(model_name), self.parse_data(x, orient=orient), **kwargs)
 
         if as_array and isinstance(x_hat, pd.DataFrame):
             x_resp = x_hat.values.tolist()

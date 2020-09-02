@@ -17,23 +17,11 @@ TODO
 ## Example
  A really trivial example follows below. 
  
- Start out by serving the database part of the application. This server is responsible for interfacing with the 
- database.
-  ```python
-from example.dbapp import init_app
-from waitress import serve 
+ Start out by initializing the application. There's a Docker compose script
+ included, so just navigate to the folder and run
 
-if __name__ == '__main__':
-    serve(init_app(), port=8081)
  ```
- 
- Next, serve the ML part of the application, i.e. the one exposing the models.
- ```python
-from example.app import init_app
-from waitress import serve 
-
-if __name__ == '__main__':
-    serve(init_app(), port=8080)
+ docker-compose up -d
  ```
  
  Now, let's train and predict.
