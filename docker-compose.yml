@@ -35,3 +35,4 @@ services:
       - 8080:8080
     depends_on:
       - redis_worker
+      - db_server
