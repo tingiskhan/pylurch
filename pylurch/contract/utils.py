@@ -8,3 +8,4 @@ def chunk(iterable, cs):
 
 class Constants(Enum):
     ChunkSize = 999
+    InterfaceChunk = 9999

@@ -49,21 +49,29 @@ class DatabaseResource(object):
             be = fb.from_json(req.media)
             query = query.filter(be)
 
-        res.media = self.serialize(query.all(), many=True)
+        try:
+            res.media = self.serialize(query.all(), many=True)
+        except Exception as e:
+            self.logger.exception(e)
+            res.status = HTTP_500
+
         session.close()
 
         return res
+
+    def on_get(self, req, res):
+        return self.on_post(req, res)
 
     def on_put(self, req, res):
         objs = self.deserialize(req.media, many=True, dump_only=SERIALIZATION_IGNORE)
         self.logger.info(f'Now trying to create {len(objs):n} objects')
         session = self.session_factory()
 
-        for c in chunk(objs, Constants.ChunkSize.value):
-            session.add_all(c)
-            session.flush()
-
         try:
+            for c in chunk(objs, Constants.ChunkSize.value):
+                session.add_all(c)
+                session.flush()
+
             session.commit()
             self.logger.info(f'Successfully created {len(objs):n} objects, now trying to serialize')
             res.media = self.serialize(objs, many=True)
@@ -101,10 +109,13 @@ class DatabaseResource(object):
         session = self.session_factory()
         self.logger.info(f'Now trying to update {len(objs):n} objects')
 
-        for obj in objs:
-            session.merge(obj)
-
         try:
+            for c in chunk(objs, Constants.ChunkSize.value):
+                for obj in c:
+                    session.merge(obj)
+
+                session.flush()
+
             session.commit()
             self.logger.info(f'Successfully update {len(objs):n} objects, now trying to serialize')
             res.media = self.serialize(objs, many=True)

@@ -54,7 +54,7 @@ class DatabaseInterface(BaseInterface):
             obj = [obj]
 
         res = list()
-        for c in chunk(obj, Constants.ChunkSize.value):
+        for c in chunk(obj, Constants.InterfaceChunk.value):
             dump = self._serialize(c, load_only=SERIALIZATION_IGNORE, many=True)
             req = self._exec_req(put, json=dump)
             res.extend(self._deserialize(req, many=True))
