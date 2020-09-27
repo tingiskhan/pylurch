@@ -1,8 +1,8 @@
 from pylurch.contract.database import BaseMixin, SERIALIZATION_IGNORE
 from typing import List, Callable
 from copy import copy
-from requests import post, put, delete, patch
-from pylurch.contract.filterbuilder import FilterBuilder
+from requests import get, put, delete, patch
+from pylurch.contract import TreeParser
 from pylurch.contract.utils import chunk, Constants
 from pylurch.contract.schemas import DatabaseSchema
 from typing import Type
@@ -74,10 +74,10 @@ class DatabaseInterface(BaseInterface):
 
         json = None
         if f:
-            fb = FilterBuilder(self._schema.Meta.model)
-            json = fb.to_json(f(self._schema.Meta.model))
+            fb = TreeParser(self._schema.Meta.model)
+            json = fb.to_string(f(self._schema.Meta.model))
 
-        req = self._exec_req(post, json=json)
+        req = self._exec_req(get, params={"filter": json})
         res = self._deserialize(req, many=True)
 
         if not one:

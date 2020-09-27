@@ -1,6 +1,6 @@
 from pylurch.contract.schemas import DatabaseSchema
 from pylurch.contract.database import SERIALIZATION_IGNORE
-from pylurch.contract.filterbuilder import FilterBuilder
+from pylurch.contract import TreeParser
 from typing import Union
 from pylurch.contract.utils import chunk, Constants
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -40,13 +40,13 @@ class DatabaseResource(object):
 
         return schema.dump(objs)
 
-    def on_post(self, req, res):
+    def on_get(self, req, res):
         session = self.session_factory()
         query = session.query(self.model)
 
-        if req.media:
-            fb = FilterBuilder(self.model)
-            be = fb.from_json(req.media)
+        if req.query_string:
+            tb = TreeParser(self.model)
+            be = tb.from_string(req.params["filter"])
             query = query.filter(be)
 
         try:
@@ -58,9 +58,6 @@ class DatabaseResource(object):
         session.close()
 
         return res
-
-    def on_get(self, req, res):
-        return self.on_post(req, res)
 
     def on_put(self, req, res):
         objs = self.deserialize(req.media, many=True, dump_only=SERIALIZATION_IGNORE)
