@@ -38,6 +38,7 @@ setup(
         'marshmallow-sqlalchemy',
         'dateparser',
         'rq',
-        'cachetools'
+        'cachetools',
+        'pyparsing'
     ]
 )
