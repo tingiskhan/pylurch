@@ -13,7 +13,9 @@ MAPPING = {
     '<': lt,
     '>=': ge,
     '>': gt,
-    '!=': ne
+    '!=': ne,
+    '&&': and_,
+    '||': or_
 }
 
 INVERSE_MAP = {v: k for k, v in MAPPING.items()}
