@@ -13,9 +13,7 @@ MAPPING = {
     '<': lt,
     '>=': ge,
     '>': gt,
-    '!=': ne,
-    '&&': and_,
-    '||': or_
+    '!=': ne
 }
 
 INVERSE_MAP = {v: k for k, v in MAPPING.items()}
@@ -28,9 +26,9 @@ DESERIALIZERS = {
 
 
 SERIALIZERS = {
-    DateTime.__name__: str,
-    Date.__name__: str,
-    Enum.__name__: lambda u: u.value,
+    DateTime.__name__: lambda u: u.isoformat(),
+    Date.__name__: lambda u: u.isoformat(),
+    Enum.__name__: lambda u: f"'{u.value}'",
     String.__name__: lambda u: f"'{u}'"
 }
 
@@ -49,10 +47,13 @@ class TreeParser(object):
     @staticmethod
     def _build_parser():
         operator = pp.Regex(">=|<=|!=|>|<|==").setName("operator")
-        number = pp.Regex(r"[+-]?\d+(:?\.\d*)?(:?[eE][+-]?\d+)?")
-        identifier = pp.Word(pp.alphas, pp.alphanums + "_")
-        comparison_term = identifier | number | pp.QuotedString("'")
-        condition = pp.Group(comparison_term + operator + comparison_term)
+        comparison_term = (
+                pp.pyparsing_common.iso8601_datetime.copy() |
+                pp.pyparsing_common.iso8601_date.copy() |
+                pp.pyparsing_common.number.copy() |
+                pp.QuotedString("'")
+        )
+        condition = pp.Group(pp.pyparsing_common.identifier + operator + comparison_term)
 
         expr = pp.operatorPrecedence(
             condition,

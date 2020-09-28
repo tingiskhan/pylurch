@@ -44,16 +44,17 @@ class DatabaseResource(object):
         session = self.session_factory()
         query = session.query(self.model)
 
-        if req.query_string:
-            tb = TreeParser(self.model)
-            be = tb.from_string(req.params["filter"])
-            query = query.filter(be)
-
         try:
+            if req.query_string:
+                tb = TreeParser(self.model)
+                be = tb.from_string(req.params["filter"])
+                query = query.filter(be)
+
             res.media = self.serialize(query.all(), many=True)
         except Exception as e:
             self.logger.exception(e)
             res.status = HTTP_500
+            res.media = f"{e.__class__.__name__}: {e}"
 
         session.close()
 
@@ -74,8 +75,8 @@ class DatabaseResource(object):
             res.media = self.serialize(objs, many=True)
         except Exception as e:
             self.logger.exception(e)
-            res.media = {'message': 'Failed comitting to database!'}
             res.status = HTTP_500
+            res.media = f"{e.__class__.__name__}: {e}"
             session.rollback()
 
         session.close()
@@ -95,7 +96,7 @@ class DatabaseResource(object):
         except Exception as e:
             self.logger.exception(e)
             session.rollback()
-            res.media = {'message': 'Failed deleting in database!'}
+            res.media = f"{e.__class__.__name__}: {e}"
             res.status = HTTP_500
 
         session.close()
@@ -119,7 +120,7 @@ class DatabaseResource(object):
         except Exception as e:
             self.logger.exception(e)
             session.rollback()
-            res.media = {'message': 'Failed commiting to database!'}
+            res.media = f"{e.__class__.__name__}: {e}"
             res.status = HTTP_500
 
         session.close()
