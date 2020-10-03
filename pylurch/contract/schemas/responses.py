@@ -5,6 +5,7 @@ from ..enums import Status
 
 class Base(Schema):
     status = EnumField(Status)
+    message = f.String(required=False)
 
 
 class GetResponse(Base):
