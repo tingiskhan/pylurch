@@ -1,26 +1,27 @@
 from pylurch.utils import custom_error
 from pylurch.contract.enums import Status
-from typing import Dict
-from ..inference import InferenceModel
+from typing import Dict, Any, List
+from ..inference import InferenceModel, ModelWrapper
 import pylurch.contract.schemas as sc
 from falcon.status_codes import HTTP_200, HTTP_400
 from ..tasking.wrapper import BaseWrapper
+from pylurch.contract.interfaces import DatabaseInterface
 
 
 class ModelResource(object):
-    def __init__(self, model_resource: InferenceModel, manager: BaseWrapper):
+    def __init__(self, model_resource: InferenceModel, manager: BaseWrapper, intf: DatabaseInterface):
         """
         Base object for exposing model object.
         :param model_resource: The model resource
         :param manager: The task manager
         """
 
-        self.model_resource = model_resource
+        self.wrap = ModelWrapper(model_resource, intf)
         self.manager = manager
 
     @property
     def logger(self):
-        return self.model_resource.logger
+        return self.wrap.logger
 
     def _apply_and_parse(self, meth, request, res, parser, resp):
         if meth == self._get:
@@ -46,39 +47,33 @@ class ModelResource(object):
         return self._apply_and_parse(self._patch, req, res, sc.PatchParser(), sc.PatchResponse())
 
     @custom_error
-    def _put(self, x: str, orient: str, name: str, y: str = None, modkwargs: Dict[str, object] = None,
-             algkwargs: Dict[str, object] = None):
+    def _put(self, x: str, orient: str, name: str, y: str = None, modkwargs: Dict[str, Any] = None,
+             algkwargs: Dict[str, Any] = None, labels: List[str] = None):
         # ===== Get data ===== #
-        x = self.model_resource.parse_data(x, orient=orient)
+        x = self.wrap.model.parse_data(x, orient=orient)
 
         modkwargs = modkwargs or dict()
         akws = algkwargs or dict()
+        labels = labels or list()
 
         if y is not None:
-            akws['y'] = self.model_resource.parse_data(y, orient=orient)
-
-        # ===== Check if model exists ===== #
-        model = self.model_resource.load(name)
-
-        if model is not None:
-            self.logger.info(f"Instance '{name}' of '{self.model_resource.name()}' already exists")
-            return {"status": Status.Done, "session_name": name}, HTTP_200
+            akws['y'] = self.wrap.model.parse_data(y, orient=orient)
 
         # ===== Start background task ===== #
-        key = self.manager.enqueue(self.model_resource.do_run, modkwargs, x, name=name, **akws)
+        key = self.manager.enqueue(self.wrap.do_run, modkwargs, x, name=name, labels=labels, **akws)
 
         return {"task_id": key, "status": self.manager.check_status(key), "session_name": name}, HTTP_200
 
     @custom_error
-    def _post(self, name: str, x: str, orient: str, as_array: bool, kwargs: Dict[str, object]):
-        model = self.model_resource.load(name)
+    def _post(self, name: str, x: str, orient: str, as_array: bool, kwargs: Dict[str, Any]):
+        exists = self.wrap.session_exists(name)
 
-        if model is None:
-            self.logger.info(f"No model of '{self.model_resource.name()}' and instance '{name}' exists")
+        if not exists:
+            self.logger.info(f"No model of '{self.wrap.model.name()}' and instance '{name}' exists")
             return {"task_id": None, "status": Status.Unknown}, HTTP_400
 
-        self.logger.info(f"Predicting values using model '{self.model_resource.name()}' and instance '{name}'")
-        key = self.manager.enqueue(self.model_resource.do_predict, name, x, orient, as_array=as_array, **kwargs)
+        self.logger.info(f"Predicting values using model '{self.wrap.model.name()}' and instance '{name}'")
+        key = self.manager.enqueue(self.wrap.do_predict, name, x, orient, as_array=as_array, **kwargs)
 
         return {"task_id": key, "status": self.manager.check_status(key)}, HTTP_200
 
@@ -100,22 +95,21 @@ class ModelResource(object):
 
         return resp, HTTP_200
 
-    # TODO: Needs fixing
     @custom_error
-    def _patch(self, name: str, x: str, orient: str, old_name: str, y: str = None):
-        model = self.model_resource.load(old_name)
+    def _patch(self, name: str, x: str, orient: str, old_name: str, y: str = None, labels: List[str] = None):
+        exists = self.wrap.session_exists(old_name)
 
-        if model is None:
-            self.logger.info(f"No model of '{self.model_resource.name()}' and instance '{name}' exists")
+        if not exists:
+            self.logger.info(f"No model of '{self.wrap.model.name()}' and instance '{name}' exists")
             return {"status": Status.Unknown}, HTTP_400
 
-        x = self.model_resource.parse_data(x, orient=orient)
+        x = self.wrap.model.parse_data(x, orient=orient)
 
         kwargs = dict()
         if y is not None:
-            kwargs["y"] = self.model_resource.parse_data(y, orient=orient)
+            kwargs["y"] = self.wrap.model.parse_data(y, orient=orient)
 
         # ===== Let it persist run first ===== #
-        key = self.manager.enqueue(self.model_resource.do_update, old_name, x, name=name, **kwargs)
+        key = self.manager.enqueue(self.wrap.do_update, old_name, x, name=name, labels=labels, **kwargs)
 
         return {"status": self.manager.check_status(name), "task_id": key, "session_name": name}, HTTP_200

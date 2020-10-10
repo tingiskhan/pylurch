@@ -17,4 +17,4 @@ RUN pip install ./pylurch
 
 COPY example ./example
 
-ENTRYPOINT ["gunicorn", "-b :8080", "example.app:init_app()"]
+ENTRYPOINT ["gunicorn", "-b :8080", "-w 3", "example.app:init_app()"]

@@ -4,6 +4,7 @@ from ..enums import Status
 from datetime import datetime
 
 
+# TODO: Serialize inputs?
 class Task(BaseMixin, Base):
     key = Column(String(255), nullable=False, unique=True)
 

@@ -11,6 +11,7 @@ class FitParser(Schema):
 class PutParser(FitParser):
     modkwargs = f.Dict(required=False, missing=dict())
     algkwargs = f.Dict(required=False, missing=dict())
+    labels = f.List(f.String, required=False, missing=list())
 
 
 class GetParser(Schema):
@@ -19,6 +20,7 @@ class GetParser(Schema):
 
 class PatchParser(FitParser):
     old_name = f.String(required=True)
+    labels = f.List(f.String, required=False, missing=list())
 
 
 class PostParser(FitParser):

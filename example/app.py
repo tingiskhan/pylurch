@@ -14,17 +14,17 @@ def init_app():
     # ===== Add models ===== #
     from .models import LinearRegressionModel, LogisticRegressionModel
 
-    intf = DatabaseInterface(os.environ.get("DATABASE_URI", "http://localhost:8081"))
+    intf = DatabaseInterface(os.environ.get("DATABASE_URI"))
     manager = RQWrapper(Redis(host=os.environ.get("REDIS_HOST"), port=os.environ.get("REDIS_PORT")), intf)
 
     api.add_route(
         "/linreg",
-        ModelResource(LinearRegressionModel(intf), manager)
+        ModelResource(LinearRegressionModel(), manager, intf)
     )
 
     api.add_route(
         "/logreg",
-        ModelResource(LogisticRegressionModel(intf), manager)
+        ModelResource(LogisticRegressionModel(), manager, intf)
     )
 
     logger = make_base_logger(__name__)

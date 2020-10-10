@@ -1,4 +1,4 @@
-from typing import Callable, Tuple, Dict, Any
+from typing import Callable, Any
 from pylurch.contract import enums as e, interfaces as i, database as db
 from logging import Logger
 from .task import TaskWrapper
@@ -17,7 +17,7 @@ class BaseWrapper(object):
     def make_task(self, f, *args, **kwargs) -> TaskWrapper:
         raise NotImplementedError()
 
-    def enqueue(self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], *args, **kwargs) -> str:
+    def enqueue(self, f: Callable[..., Any], *args, **kwargs) -> str:
         task = self.make_task(f, *args, **kwargs)
         self._enqueue(task)
 

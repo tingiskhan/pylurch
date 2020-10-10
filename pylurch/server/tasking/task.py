@@ -6,21 +6,26 @@ from rq import Queue
 
 
 class Decorator(object):
-    def __init__(self, f, task):
-        self._task = task
+    def __init__(self, f, task, include_task=True):
+        self._task = task   # type: TaskWrapper
         self._f = f
+        self._include_task = include_task
 
     def __call__(self, *args, **kwargs):
         try:
             # ===== Try getting result ===== #
             self._task.status = e.Status.Running
+
+            if self._include_task:
+                kwargs["task_obj"] = self._task.db
+
             res = self._f(*args, **kwargs)
 
             # ===== Update task status ===== #
             self._task.status = e.Status.Done
 
             return res
-        
+
         except Exception as exc:
             self._task.fail(exc)
 

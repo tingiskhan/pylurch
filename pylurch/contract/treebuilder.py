@@ -3,7 +3,7 @@ from operator import eq, le, lt, ge, gt, ne, and_, or_
 from sqlalchemy import bindparam, DateTime, Date, Enum, String
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 from dateparser import parse
-from typing import Dict, Union, Type, List
+from typing import Union, Type
 from .database import BaseMixin
 
 
@@ -93,7 +93,7 @@ class TreeParser(object):
             left = self.to_string(expression.clauses[0])
             right = self.to_string(expression.clauses[1])
 
-            return f"({left} {INVERSE_MAP[expression.operator]} {right})"
+            return f"({left}{INVERSE_MAP[expression.operator]}{right})"
 
         attr = getattr(self._obj, expression.left.name)
         key = attr.type.__class__.__name__

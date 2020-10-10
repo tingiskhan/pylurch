@@ -6,11 +6,11 @@ from ..schemas import GetResponse, PutResponse, PostResponse
 from ..enums import Status
 import numpy as np
 import json
-from typing import Any
+from typing import Any, List
 
 
 class GenericModelInterface(BaseInterface):
-    def __init__(self, base, endpoint, **modkwargs):
+    def __init__(self, base, endpoint, refresh=0.1, **modkwargs):
         """
         Implements an interface for talking to models.
         :param modkwargs: Any key worded arguments for the model to pass on instantiation. Only applies to training
@@ -22,6 +22,7 @@ class GenericModelInterface(BaseInterface):
         self._name = None
         self._task_id = None
         self._orient = "columns"
+        self._refresh = refresh
 
     def load(self, name: str):
         """
@@ -52,13 +53,15 @@ class GenericModelInterface(BaseInterface):
 
         return resp["status"] == Status.Done, resp
 
-    def fit(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True, **algkwargs):
+    def fit(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True,
+            labels: List[str] = None, **algkwargs):
         """
         Method for fitting the model.
         :param x: The x-data
         :param y: The y-data (if any)
         :param session_name: The name of the session
         :param wait: Whether to wait for it complete
+        :param labels: Whether to add labels to the training session
         :param algkwargs: Any algorithm key words
         """
 
@@ -67,7 +70,8 @@ class GenericModelInterface(BaseInterface):
             "algkwargs": algkwargs,
             "modkwargs": self._mk,
             "orient": self._orient,
-            "name": session_name
+            "name": session_name,
+            "labels": labels
         }
 
         if y is not None:
@@ -92,7 +96,7 @@ class GenericModelInterface(BaseInterface):
         is_done = False
         while wait and not is_done:
             is_done, _ = self._is_done(resp["task_id"])
-            sleep(5)
+            sleep(self._refresh)
 
         return self
 
@@ -120,7 +124,7 @@ class GenericModelInterface(BaseInterface):
         is_done = False
         while not is_done:
             is_done, pred_resp = self._is_done(resp["task_id"])
-            sleep(5)
+            sleep(self._refresh)
 
         if not as_array:
             return pd.read_json(pred_resp["data"], orient=pred_resp["orient"])
