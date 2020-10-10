@@ -6,7 +6,7 @@ from datetime import datetime
 
 # TODO: Serialize inputs?
 class Task(BaseMixin, Base):
-    key = Column(String(255), nullable=False, unique=True)
+    key = Column(String(100), nullable=False, unique=True)
 
     start_time = Column(DateTime, nullable=False, default=datetime.now)
     end_time = Column(DateTime, nullable=False, default=datetime.max)
@@ -17,7 +17,7 @@ class Task(BaseMixin, Base):
 class TaskMeta(BaseMixin, Base):
     task_id = Column(Integer, ForeignKey(Task.id), nullable=False)
 
-    key = Column(String(255), nullable=False)
+    key = Column(String(100), nullable=False)
     value = Column(String(255), nullable=False)
 
 
