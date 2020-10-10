@@ -11,7 +11,7 @@ class Task(BaseMixin, Base):
     start_time = Column(DateTime, nullable=False, default=datetime.now)
     end_time = Column(DateTime, nullable=False, default=datetime.max)
 
-    status = Column(Enum(Status), nullable=False)
+    status = Column(Enum(Status, create_constraint=False, native_enum=False), nullable=False)
 
 
 class TaskMeta(BaseMixin, Base):

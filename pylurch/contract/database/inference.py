@@ -13,7 +13,7 @@ class TrainingSession(BaseMixin, Base):
     model_id = Column(Integer, ForeignKey(Model.id), nullable=False)
     task_id = Column(Integer, ForeignKey(Task.id), nullable=False)
     session_name = Column(String(255), nullable=False)
-    backend = Column(Enum(SerializerBackend), nullable=False)
+    backend = Column(Enum(SerializerBackend, create_constraint=False, native_enum=False), nullable=False)
 
     __table_args__ = (
         UniqueConstraint(task_id, session_name),
