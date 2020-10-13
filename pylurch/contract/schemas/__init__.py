@@ -7,6 +7,7 @@ from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from marshmallow import fields as f, ValidationError
 from marshmallow_enum import EnumField
 from functools import lru_cache
+from typing import Type
 
 
 @classmethod
@@ -74,7 +75,7 @@ class DatabaseSchema(SQLAlchemyAutoSchema):
         return type(f"{base_class.__name__}Schema", (DatabaseSchema,), state_dict)
 
     @classmethod
-    def get_schema(cls, obj):
+    def get_schema(cls, obj: Type):
         return cls.generate_schema(obj)
 
     @classmethod

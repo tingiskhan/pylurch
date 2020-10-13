@@ -56,7 +56,7 @@ class TaskWrapper(object):
             status=e.Status.Queued
         )
 
-        self._db = self._intf.make_interface(db.Task).create(task)
+        self._db = self._intf.create(task)
         return self
 
     @property
@@ -78,7 +78,7 @@ class TaskWrapper(object):
         if x in (e.Status.Failed, e.Status.Done):
             self._db.end_time = datetime.now()
 
-        self._db = self._intf.make_interface(db.Task).update(self._db)[0]
+        self._db = self._intf.update(self._db)[0]
 
     def add_meta(self, key, value):
         if key not in self._metas:
@@ -90,7 +90,7 @@ class TaskWrapper(object):
         return self
 
     def fail(self, exc: Exception):
-        self._intf.make_interface(db.TaskException).create(db.TaskException(
+        self._intf.create(db.TaskException(
             task_id=self._db.id,
             type_=exc.__class__.__name__,
             message=str(exc)
@@ -102,12 +102,11 @@ class TaskWrapper(object):
 
     def update_meta(self):
         # TODO: Improve
-        intf = self._intf.make_interface(db.Task)
         for k, v in self._metas.items():
             if v.id is None:
-                self._metas[k] = intf.create(v)
+                self._metas[k] = self._intf.create(v)
             else:
-                self._metas[k] = intf.update(v)
+                self._metas[k] = self._intf.update(v)
 
         return self
 
@@ -132,6 +131,6 @@ class RQTask(TaskWrapper):
             status=e.Status.Queued
         )
 
-        self._db = self._intf.make_interface(db.Task).create(task)
+        self._db = self._intf.create(task)
         return self
 

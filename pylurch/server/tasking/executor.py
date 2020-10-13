@@ -8,7 +8,7 @@ class ExecutorWrapper(BaseWrapper):
     def __init__(self, interface, executor: Executor = None):
         """
         Class for enqueuing tasks using 'concurrent.futures.Executor' as task manager. Do note that this is for
-        debugging purposes than production use.
+        debugging purposes rather than production use.
         """
 
         super().__init__(interface)

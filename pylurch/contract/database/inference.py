@@ -1,7 +1,6 @@
 from . import Base, BaseMixin
 from sqlalchemy import Column, String, LargeBinary, Integer, ForeignKey, Enum, UniqueConstraint
 from ..enums import SerializerBackend
-from .task import Task
 
 
 class Model(BaseMixin, Base):
@@ -11,7 +10,7 @@ class Model(BaseMixin, Base):
 # TODO: Add version numbering?
 class TrainingSession(BaseMixin, Base):
     model_id = Column(Integer, ForeignKey(Model.id), nullable=False)
-    task_id = Column(Integer, ForeignKey(Task.id), nullable=False)
+    task_id = Column(Integer, ForeignKey("Task.id"), nullable=False)
     session_name = Column(String(255), nullable=False)
     backend = Column(Enum(SerializerBackend, create_constraint=False, native_enum=False), nullable=False)
 

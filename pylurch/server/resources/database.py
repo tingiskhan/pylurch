@@ -10,7 +10,8 @@ from ...utils import make_base_logger
 
 
 class DatabaseResource(object):
-    def __init__(self, schema: DatabaseSchema, session_factory: Union[scoped_session, sessionmaker], logger: Logger = None):
+    def __init__(self, schema: DatabaseSchema, session_factory: Union[scoped_session, sessionmaker],
+                 logger: Logger = None):
         """
         Implements a base resources for exposing database models.
         :param schema: The schema to use, must be marshmallow.Schema
@@ -115,7 +116,7 @@ class DatabaseResource(object):
                 session.flush()
 
             session.commit()
-            self.logger.info(f'Successfully update {len(objs):n} objects, now trying to serialize')
+            self.logger.info(f'Successfully updated {len(objs):n} objects, now trying to serialize')
             res.media = self.serialize(objs, many=True)
         except Exception as e:
             self.logger.exception(e)

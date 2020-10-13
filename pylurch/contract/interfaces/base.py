@@ -1,3 +1,6 @@
+from typing import List, Dict, Any, Union
+
+
 class BaseInterface(object):
     def __init__(self, base: str, endpoint: str):
         """
@@ -12,16 +15,15 @@ class BaseInterface(object):
             raise ValueError('The endpoint should not begin with a `/`!')
 
         self._ep = endpoint
-
         self._headers = {
             'Content-type': 'application/json'
         }
 
-    def url(self):
-        return f'{self._base}/{self._ep}'
+    def url(self, endpoint: str = None):
+        return f'{self._base}/{endpoint or self._ep}'
 
-    def _exec_req(self, meth, **kwargs):
-        resp = meth(self.url(), headers=self._headers, **kwargs)
+    def _exec_req(self, meth, endpoint: str = None, **kwargs) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        resp = meth(self.url(endpoint), headers=self._headers, **kwargs)
 
         if resp.status_code != 200:
             raise Exception(f'Got error code {resp.status_code}: {resp.text}')

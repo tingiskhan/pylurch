@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Dict, Union
+from typing import Dict, Union, TypeVar
 import numpy as np
 import dill
 import onnxruntime as rt
@@ -7,6 +7,7 @@ from pylurch.contract import enums
 
 
 FrameOrArray = Union[pd.DataFrame, np.ndarray]
+T = TypeVar("T")
 
 
 class InferenceModel(object):
@@ -49,7 +50,7 @@ class InferenceModel(object):
 
         return pd.read_json(data, **kwargs).sort_index()
 
-    def make_model(self, **kwargs) -> object:
+    def make_model(self, **kwargs) -> T:
         """
         Creates the model
         :param kwargs: Any key worded arguments passed on instantiation to the model.
@@ -57,7 +58,7 @@ class InferenceModel(object):
 
         raise NotImplementedError()
 
-    def serialize(self, model: object, x: pd.DataFrame, y: pd.DataFrame = None) -> bytes:
+    def serialize(self, model: T, x: pd.DataFrame, y: pd.DataFrame = None) -> bytes:
         """
         Serialize model to byte string.
         :param model: The model to convert
@@ -67,7 +68,7 @@ class InferenceModel(object):
 
         raise NotImplementedError()
 
-    def deserialize(self, bytestring: bytes) -> object:
+    def deserialize(self, bytestring: bytes) -> T:
         """
         Method for deserializing the model. Can be overridden if custom serializer.
         :param bytestring: The byte string
@@ -80,7 +81,7 @@ class InferenceModel(object):
         elif self.serializer_backend() == enums.SerializerBackend.Dill:
             return dill.loads(bytestring)
 
-    def fit(self, model: object, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]) -> object:
+    def fit(self, model: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]) -> T:
         """
         Fits the model
         :param model: The model to fit
@@ -91,7 +92,7 @@ class InferenceModel(object):
 
         raise NotImplementedError()
 
-    def update(self, model: object, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]) -> object:
+    def update(self, model: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]) -> T:
         """
         Updates the model
         :param model: The model to update
@@ -102,7 +103,7 @@ class InferenceModel(object):
 
         raise ValueError('This model does not support updating!')
 
-    def predict(self, model: object, x: FrameOrArray, **kw: Dict[str, object]) -> FrameOrArray:
+    def predict(self, model: T, x: FrameOrArray, **kw: Dict[str, object]) -> FrameOrArray:
         """
         Return the prediction.
         :param model: The model to use for predicting

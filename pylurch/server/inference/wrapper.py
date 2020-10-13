@@ -5,11 +5,11 @@ import numpy as np
 from pylurch.contract.interfaces import DatabaseInterface
 from pylurch.contract import database as db, enums as e
 from ...utils import make_base_logger
-from .model import InferenceModel
+from .model import InferenceModel, T
 
 
 FrameOrArray = Union[pd.DataFrame, np.ndarray]
-Func = Callable[[object, FrameOrArray, Optional[FrameOrArray], Dict[str, Any]], Any]
+Func = Callable[[T, FrameOrArray, Optional[FrameOrArray], Dict[str, Any]], Any]
 
 
 class ModelWrapper(object):
@@ -26,16 +26,8 @@ class ModelWrapper(object):
     def model(self) -> InferenceModel:
         return self._model
 
-    @property
-    def ts_intf(self):
-        return self._intf.make_interface(db.TrainingSession)
-
-    @property
-    def mod_intf(self):
-        return self._intf.make_interface(db.Model)
-
-    def _run(self, func: Func, model: object, x: FrameOrArray, name: str, task_obj: db.Task,
-             y: FrameOrArray = None, labels: List[str] = None, **kwargs) -> db.TrainingSession:
+    def _run(self, func: Func, model: T, x: FrameOrArray, name: str, task_obj: db.Task, y: FrameOrArray = None,
+             labels: List[str] = None, **kwargs) -> db.TrainingSession:
 
         modname = self._model.name()
         if self._model.is_derived:
@@ -53,7 +45,7 @@ class ModelWrapper(object):
             task_id=task_obj.id
         )
 
-        session = self.ts_intf.create(session)
+        session = self._intf.create(session)
 
         # ===== Fit/update ===== #
         res = func(model, x, y=y, **kwargs)
@@ -70,21 +62,21 @@ class ModelWrapper(object):
         )
 
         self.logger.info(f"Now trying to persist '{modname}' with '{name}'")
-        self._intf.make_interface(db.TrainingResult).create(data)
+        self._intf.create(data)
 
         self.logger.info(f"Successfully persisted '{self._model.name()}' with '{name}'")
 
         # ===== Save labels ===== #
         labels = [db.Label(session_id=session.id, label=lab) for lab in labels]
         if any(labels):
-            self._intf.make_interface(db.Label).create(labels)
+            self._intf.create(labels)
 
         # ===== Save meta data ===== #
         meta_data = self._model.add_metadata(res, x=x, y=y, **kwargs)
         md = [db.MetaData(session_id=session.id, key=k, value=v) for k, v in meta_data.items()]
 
         if any(md):
-            self._intf.make_interface(db.MetaData).create(md)
+            self._intf.create(md)
 
         return session
 
@@ -102,7 +94,7 @@ class ModelWrapper(object):
             new=res.id
         )
 
-        self._intf.make_interface(db.UpdatedSession).create(link)
+        self._intf.create(link)
 
     def do_predict(self, model_name: str, x, orient, as_array=False, **kwargs):
         x_hat = self._model.predict(self.load(model_name), self._model.parse_data(x, orient=orient), **kwargs)
@@ -120,10 +112,10 @@ class ModelWrapper(object):
         }
 
     def _get_model(self) -> db.Model:
-        model = self.mod_intf.get(lambda u: u.name == self._model.name(), one=True)
+        model = self._intf.get(db.Model, lambda u: u.name == self._model.name(), one=True)
 
         if model is None:
-            model = self.mod_intf.create(db.Model(name=self._model.name()))
+            model = self._intf.create(db.Model(name=self._model.name()))
 
         return model
 
@@ -133,17 +125,17 @@ class ModelWrapper(object):
             self.logger.info(f"'{modname}' is derived and loads model from {self._model.base.name()}")
             return ModelWrapper(self._model.base, self._intf).get_session(name)
 
-        mod = self.mod_intf.get(lambda u: u.name == modname, one=True)
+        mod = self._intf.get(db.Model, lambda u: u.name == modname, one=True)
         if mod is None:
             return None
 
-        session = self.ts_intf.get(lambda u: (u.session_name == name) & (u.model_id == mod.id))
+        session = self._intf.get(db.TrainingSession, lambda u: (u.session_name == name) & (u.model_id == mod.id))
         if not any(session):
             return None
 
         # TODO: Use in_ instead?
         for s in sorted(session, key=lambda u: u.task_id, reverse=True):
-            task = self._intf.make_interface(db.Task).get(lambda u: u.id == s.task_id, one=True)
+            task = self._intf.get(db.Task, lambda u: u.id == s.task_id, one=True)
 
             if task.status == e.Status.Done:
                 return s
@@ -160,7 +152,7 @@ class ModelWrapper(object):
         if session is None:
             return None
 
-        res = self._intf.make_interface(db.TrainingResult).get(lambda u: u.session_id == session.id, one=True)
+        res = self._intf.get(db.TrainingResult, lambda u: u.session_id == session.id, one=True)
         return self._model.deserialize(res.bytes)
 
     def session_exists(self, session_name: str) -> bool:
