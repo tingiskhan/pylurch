@@ -67,7 +67,7 @@ class TreeParser(object):
 
         return expr
 
-    def _recursion(self, expr: pp.ParseResults):
+    def _recursion(self, expr: pp.ParseResults) -> Union[BinaryExpression, BooleanClauseList]:
         length = len(expr)
         if length == 3 and not isinstance(expr[0], pp.ParseResults):
             attr = getattr(self._obj, expr[0])

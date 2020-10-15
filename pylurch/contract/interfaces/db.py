@@ -4,7 +4,7 @@ from requests import get, put, delete, patch
 from ..treebuilder import TreeParser
 from ..utils import chunk, Constants
 from ..schemas import DatabaseSchema
-from typing import Type, TypeVar, List, Any, Dict, Union
+from typing import Type, TypeVar, List, Any, Dict, Union, Optional
 from .base import BaseInterface
 
 
@@ -60,12 +60,13 @@ class DatabaseInterface(BaseInterface):
 
         return res
 
-    def get(self, objtype: Type[T], f: Callable[[T], bool] = None, one: bool = False) -> Union[T, List[T], None]:
+    def get(self, objtype: Type[T], f: Callable[[T], bool] = None, one=False, latest=False) -> Optional[T, List[T]]:
         """
         Get an object of type specified by Meta object in `schema`.
         :param objtype: The object type to get
         :param f: A callable with 1 parameter for constructing a BinaryExpression
         :param one: Whether to get only one
+        :param latest: Whether to only returns the latest
         :return: The object of type specified by Meta object in `schema`, or all
         """
 
@@ -75,10 +76,10 @@ class DatabaseInterface(BaseInterface):
             fb = TreeParser(schema.Meta.model)
             json = fb.to_string(f(schema.Meta.model))
 
-        req = self._exec_req(get, endpoint=schema.endpoint(), params={"filter": json})
+        req = self._exec_req(get, endpoint=schema.endpoint(), params={"filter": json, "latest": latest})
         res = deserialize(req, schema, many=True)
 
-        if not one:
+        if not (one or latest):
             return res
 
         if len(res) > 1:

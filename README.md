@@ -1,8 +1,7 @@
 # pylurch
-Lightweight [Falcon](https://falcon.readthedocs.io/en/stable/) application for serving ML models.
-
-## Features
-TODO
+Lightweight [Falcon](https://falcon.readthedocs.io/en/stable/) application for serving ML models. Please note that is
+just a fun sideproject, as such, there might be bugs etc. and you'd be far better off using something like 
+[MLFlow](https://www.mlflow.org) or similar.
 
 ## Install
 You install the library via
@@ -37,7 +36,7 @@ y = (x.sum(axis=1) <= x.mean(axis=1)).astype(np.float32)
 
 # ===== Set up interface, perform fit and predict ===== #
 mi = GenericModelInterface('http://localhost:8080/', 'logreg')
-mi.fit(x, y=y.to_frame(), session_name='default-classification-model')
+mi.fit(x, y=y.to_frame(), name='default-classification-model')
 
 yhat = mi.predict(x).iloc[:, 0]
 yhat.index = yhat.index.astype(int)

@@ -66,7 +66,7 @@ class DatabaseSchema(SQLAlchemyAutoSchema):
 
         for ec in enum_cols:
             col = ec.property.columns[0]
-            state_dict[col.name] = EnumField(col.type.python_type)
+            state_dict[ec.property.key] = EnumField(col.type.python_type)
 
         for bc in byte_cols:
             col = bc.property.columns[0]

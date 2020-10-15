@@ -14,7 +14,7 @@ class GetResponse(Base):
 
 
 class PutResponse(Base):
-    session_name = f.String(required=True)
+    name = f.String(required=True)
     task_id = f.String(required=False)
 
 

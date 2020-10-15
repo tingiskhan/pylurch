@@ -46,12 +46,20 @@ class DatabaseResource(object):
         query = session.query(self.model)
 
         try:
-            if req.query_string:
+            filt = req.params.get("filter", None)
+            if filt:
                 tb = TreeParser(self.model)
-                be = tb.from_string(req.params["filter"])
+                be = tb.from_string(filt)
                 query = query.filter(be)
 
-            res.media = self.serialize(query.all(), many=True)
+            latest = req.params.get("latest", False)
+            if not latest:
+                q_res = query.all()
+            else:
+                q_res = query.order_by(self.model.id.desc()).first()
+                q_res = [q_res] if q_res is not None else []
+
+            res.media = self.serialize(q_res, many=True)
         except Exception as e:
             self.logger.exception(e)
             res.status = HTTP_500

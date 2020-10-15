@@ -24,6 +24,7 @@ class GenericModelInterface(BaseInterface):
         self._orient = "columns"
         self._refresh = refresh
 
+    # TODO: Load using the actual TrainingSession
     def load(self, name: str):
         """
         Loads the model with specified key.
@@ -53,13 +54,13 @@ class GenericModelInterface(BaseInterface):
 
         return resp["status"] == Status.Done, resp
 
-    def fit(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True,
-            labels: List[str] = None, **algkwargs):
+    def fit(self, x: pd.DataFrame, name: str, y: pd.DataFrame = None, wait: bool = True, labels: List[str] = None,
+            **algkwargs):
         """
         Method for fitting the model.
         :param x: The x-data
         :param y: The y-data (if any)
-        :param session_name: The name of the session
+        :param name: The name of the session
         :param wait: Whether to wait for it complete
         :param labels: Whether to add labels to the training session
         :param algkwargs: Any algorithm key words
@@ -70,7 +71,7 @@ class GenericModelInterface(BaseInterface):
             "algkwargs": algkwargs,
             "modkwargs": self._mk,
             "orient": self._orient,
-            "name": session_name,
+            "name": name,
             "labels": labels
         }
 
@@ -86,7 +87,7 @@ class GenericModelInterface(BaseInterface):
             raise Exception(f"Got code {resp.status_code}: {resp.text}")
 
         resp = PutResponse().load(resp.json())
-        self._name = resp["session_name"]
+        self._name = resp["name"]
 
         if resp["status"] == Status.Done:
             return self

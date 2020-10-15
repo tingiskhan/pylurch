@@ -62,7 +62,7 @@ class ModelResource(object):
         # ===== Start background task ===== #
         key = self.manager.enqueue(self.wrap.do_run, modkwargs, x, name=name, labels=labels, **akws)
 
-        return {"task_id": key, "status": self.manager.check_status(key), "session_name": name}, HTTP_200
+        return {"task_id": key, "status": self.manager.check_status(key), "name": name}, HTTP_200
 
     @custom_error
     def _post(self, name: str, x: str, orient: str, as_array: bool, kwargs: Dict[str, Any]):
@@ -112,4 +112,4 @@ class ModelResource(object):
         # ===== Let it persist run first ===== #
         key = self.manager.enqueue(self.wrap.do_update, old_name, x, name=name, labels=labels, **kwargs)
 
-        return {"status": self.manager.check_status(name), "task_id": key, "session_name": name}, HTTP_200
+        return {"status": self.manager.check_status(name), "task_id": key, "name": name}, HTTP_200

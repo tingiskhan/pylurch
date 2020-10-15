@@ -1,21 +1,46 @@
 from . import Base, BaseMixin
-from sqlalchemy import Column, String, LargeBinary, Integer, ForeignKey, Enum, UniqueConstraint
-from ..enums import SerializerBackend
+from sqlalchemy import Column, String, LargeBinary, Integer, ForeignKey, Enum, UniqueConstraint, select
+from sqlalchemy.orm import column_property
+from ..enums import SerializerBackend, Status
+from . import Task
+from functools import wraps
+
+
+# TODO: Workaround: https://github.com/tiangolo/pydantic-sqlalchemy/issues/10
+def custom_column_property(f, key):
+    @wraps(f)
+    def wrapper(*args, default=None, nullable=True, **kwargs):
+        v = f(*args, **kwargs)
+        for c in v.columns:
+            c.default = default
+            c.nullable = nullable
+            # TODO: Perhaps ok...?
+            c.key = c.name = key
+
+        return v
+
+    return wrapper
 
 
 class Model(BaseMixin, Base):
     name = Column(String(255), nullable=False, unique=True)
 
 
-# TODO: Add version numbering?
 class TrainingSession(BaseMixin, Base):
     model_id = Column(Integer, ForeignKey(Model.id), nullable=False)
-    task_id = Column(Integer, ForeignKey("Task.id"), nullable=False)
-    session_name = Column(String(255), nullable=False)
+    task_id = Column(Integer, ForeignKey(Task.id), nullable=False, unique=True)
+    name = Column(String(255), nullable=False)
+    version = Column(Integer(), nullable=False)
     backend = Column(Enum(SerializerBackend, create_constraint=False, native_enum=False), nullable=False)
 
+    status = custom_column_property(column_property, "status")(
+        select([Task.status]).where(Task.id == task_id).correlate_except(Task),
+        nullable=False,
+        default=Status.Unknown
+    )
+
     __table_args__ = (
-        UniqueConstraint(task_id, session_name),
+        UniqueConstraint(model_id, name, version),
     )
 
 

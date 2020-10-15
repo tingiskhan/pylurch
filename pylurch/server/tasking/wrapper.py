@@ -27,7 +27,7 @@ class BaseWrapper(object):
         raise NotImplementedError()
 
     def get_task(self, key):
-        return self._i.make_interface(db.Task).get(lambda u: u.key == key, one=True)
+        return self._i.get(db.Task, lambda u: u.key == key, one=True)
 
     def check_status(self, key):
         task = self.get_task(key)

@@ -37,12 +37,17 @@ class ModelWrapper(object):
         db_model = self._get_model()
         self.logger.info(f"Starting training of '{modname}' with '{name}' and using {x.shape[0]} observations")
 
+        # ===== Get latest sessions ===== #
+        latest = self.get_session(name, only_succeeded=False)
+
         # ===== Save session ===== #
         session = db.TrainingSession(
             model_id=db_model.id,
-            session_name=name,
+            name=name,
             backend=self._model.serializer_backend(),
-            task_id=task_obj.id
+            task_id=task_obj.id,
+            status=e.Status.Unknown,
+            version=1 if latest is None else (latest.version + 1)
         )
 
         session = self._intf.create(session)
@@ -119,7 +124,7 @@ class ModelWrapper(object):
 
         return model
 
-    def get_session(self, name: str) -> Union[db.TrainingSession, None]:
+    def get_session(self, name: str, only_succeeded=False) -> Optional[db.TrainingSession]:
         modname = self._model.name()
         if self._model.is_derived:
             self.logger.info(f"'{modname}' is derived and loads model from {self._model.base.name()}")
@@ -129,20 +134,15 @@ class ModelWrapper(object):
         if mod is None:
             return None
 
-        session = self._intf.get(db.TrainingSession, lambda u: (u.session_name == name) & (u.model_id == mod.id))
-        if not any(session):
-            return None
+        def f(u: db.TrainingSession):
+            if only_succeeded:
+                return (u.name == name) & (u.model_id == mod.id) & (u.status == e.Status.Done)
 
-        # TODO: Use in_ instead?
-        for s in sorted(session, key=lambda u: u.task_id, reverse=True):
-            task = self._intf.get(db.Task, lambda u: u.id == s.task_id, one=True)
+            return (u.name == name) & (u.model_id == mod.id)
 
-            if task.status == e.Status.Done:
-                return s
+        return self._intf.get(db.TrainingSession, f, latest=True)
 
-        return None
-
-    def load(self, session_name: str) -> object:
+    def load(self, session_name: str) -> T:
         """
         Method for loading the latest successfully trained model with 'session_name'.
         """
