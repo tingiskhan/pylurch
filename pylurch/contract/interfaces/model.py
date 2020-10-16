@@ -9,6 +9,7 @@ import json
 from typing import Any, List
 
 
+# TODO: Improve this
 class GenericModelInterface(BaseInterface):
     def __init__(self, base, endpoint, refresh=0.1, **modkwargs):
         """
@@ -132,7 +133,7 @@ class GenericModelInterface(BaseInterface):
 
         return np.array(json.loads(pred_resp["data"]))
 
-    def update(self, x: pd.DataFrame, session_name: str, y: pd.DataFrame = None, wait: bool = True):
+    def update(self, x: pd.DataFrame, name: str, y: pd.DataFrame = None, wait: bool = True):
         """
         Updates the model. See docs of `fit` for docs pertaining to parameters.
         """
@@ -141,7 +142,7 @@ class GenericModelInterface(BaseInterface):
             "x": x.to_json(orient=self._orient),
             "orient": self._orient,
             "old_name": self._name,
-            "name": session_name
+            "name": name
         }
 
         if y is not None:
