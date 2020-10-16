@@ -38,7 +38,7 @@ class DatabaseResource(object):
                 be = tb.from_string(filt)
                 query = query.filter(be)
 
-            latest = req.params.get("latest", False)
+            latest = req.params.get("latest", "false").lower() == "true"
             if not latest:
                 q_res = query.all()
             else:
