@@ -2,9 +2,9 @@ from ..database import BaseMixin, SERIALIZATION_IGNORE
 from typing import Callable
 from requests import get, put, delete, patch
 from ..treebuilder import TreeParser
-from ..utils import chunk, Constants
+from ..utils import chunk, Constants, serialize, deserialize
 from ..schemas import DatabaseSchema
-from typing import Type, TypeVar, List, Any, Dict, Union, Optional
+from typing import Type, TypeVar, List, Union
 from .base import BaseInterface
 
 
@@ -22,15 +22,6 @@ def decorator(f):
         return f(self, objs, **kwargs)
 
     return wrapper
-
-
-def serialize(objects: List[T], schema, **kwargs) -> List[Dict[str, Any]]:
-    return schema(many=kwargs.pop("many", True), **kwargs).dump(objects)
-
-
-def deserialize(json: List[Dict[str, Any]], schema, **kwargs) -> List[T]:
-    res = schema(many=kwargs.pop("many", True), **kwargs).load(json)
-    return [schema.Meta.model(**it) for it in res]
 
 
 class DatabaseInterface(BaseInterface):
@@ -60,7 +51,7 @@ class DatabaseInterface(BaseInterface):
 
         return res
 
-    def get(self, objtype: Type[T], f: Callable[[T], bool] = None, one=False, latest=False) -> Optional[T, List[T]]:
+    def get(self, objtype: Type[T], f: Callable[[T], bool] = None, one=False, latest=False) -> Union[T, List[T], None]:
         """
         Get an object of type specified by Meta object in `schema`.
         :param objtype: The object type to get

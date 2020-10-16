@@ -2,7 +2,7 @@ from pylurch.contract.schemas import DatabaseSchema
 from pylurch.contract.database import SERIALIZATION_IGNORE
 from pylurch.contract import TreeParser
 from typing import Union
-from pylurch.contract.utils import chunk, Constants
+from pylurch.contract.utils import chunk, Constants, serialize, deserialize
 from sqlalchemy.orm import scoped_session, sessionmaker
 from falcon.status_codes import HTTP_500
 from logging import Logger
@@ -27,20 +27,6 @@ class DatabaseResource(object):
     def model(self):
         return self.schema.Meta.model
 
-    def deserialize(self, json, **kwargs):
-        schema = self.schema(**kwargs)
-        conf = schema.load(json)
-
-        if isinstance(conf, dict):
-            return self.model(**conf)
-
-        return list(self.model(**it) for it in conf)
-
-    def serialize(self, objs, **kwargs):
-        schema = self.schema(**kwargs)
-
-        return schema.dump(objs)
-
     def on_get(self, req, res):
         session = self.session_factory()
         query = session.query(self.model)
@@ -59,7 +45,7 @@ class DatabaseResource(object):
                 q_res = query.order_by(self.model.id.desc()).first()
                 q_res = [q_res] if q_res is not None else []
 
-            res.media = self.serialize(q_res, many=True)
+            res.media = serialize(q_res, self.schema, many=True)
         except Exception as e:
             self.logger.exception(e)
             res.status = HTTP_500
@@ -70,7 +56,7 @@ class DatabaseResource(object):
         return res
 
     def on_put(self, req, res):
-        objs = self.deserialize(req.media, many=True, dump_only=SERIALIZATION_IGNORE)
+        objs = deserialize(req.media, self.schema, many=True, dump_only=SERIALIZATION_IGNORE)
         self.logger.info(f'Now trying to create {len(objs):n} objects')
         session = self.session_factory()
 
@@ -81,7 +67,7 @@ class DatabaseResource(object):
 
             session.commit()
             self.logger.info(f'Successfully created {len(objs):n} objects, now trying to serialize')
-            res.media = self.serialize(objs, many=True)
+            res.media = serialize(objs, self.schema, many=True)
         except Exception as e:
             self.logger.exception(e)
             res.status = HTTP_500
@@ -112,7 +98,7 @@ class DatabaseResource(object):
         return res
 
     def on_patch(self, req, res):
-        objs = self.deserialize(req.media, many=True)
+        objs = deserialize(req.media, self.schema, many=True)
         session = self.session_factory()
         self.logger.info(f'Now trying to update {len(objs):n} objects')
 
@@ -125,7 +111,7 @@ class DatabaseResource(object):
 
             session.commit()
             self.logger.info(f'Successfully updated {len(objs):n} objects, now trying to serialize')
-            res.media = self.serialize(objs, many=True)
+            res.media = serialize(objs, self.schema, many=True)
         except Exception as e:
             self.logger.exception(e)
             session.rollback()
