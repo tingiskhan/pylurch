@@ -147,6 +147,10 @@ class ModelWrapper(object):
         Method for loading the latest successfully trained model with 'session_name'.
         """
 
+        if self._model.is_derived:
+            self.logger.info(f"'{self._model.name()}' is derived and loads model from {self._model.base.name()}")
+            return ModelWrapper(self._model.base, self._intf).get_session(session_name)
+
         session = self.get_session(session_name)
 
         if session is None:
