@@ -149,7 +149,7 @@ class ModelWrapper(object):
 
         if self._model.is_derived:
             self.logger.info(f"'{self._model.name()}' is derived and loads model from {self._model.base.name()}")
-            return ModelWrapper(self._model.base, self._intf).get_session(session_name)
+            return ModelWrapper(self._model.base, self._intf).load(session_name)
 
         session = self.get_session(session_name)
 
