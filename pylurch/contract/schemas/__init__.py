@@ -69,8 +69,7 @@ class DatabaseSchema(SQLAlchemyAutoSchema):
             state_dict[ec.property.key] = EnumField(col.type.python_type)
 
         for bc in byte_cols:
-            col = bc.property.columns[0]
-            state_dict[col.name] = BytesField(required=False, allow_none=True)
+            state_dict[bc.property.key] = BytesField(required=False, allow_none=True)
 
         return type(f"{base_class.__name__}Schema", (DatabaseSchema,), state_dict)
 
