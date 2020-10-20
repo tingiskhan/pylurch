@@ -29,9 +29,9 @@ class DatabaseResource(object):
 
     def on_get(self, req, res):
         session = self.session_factory()
-        query = session.query(self.model)
 
         try:
+            query = session.query(self.model).with_for_update()
             filt = req.params.get("filter", None)
             if filt:
                 tb = TreeParser(self.model)
@@ -51,7 +51,7 @@ class DatabaseResource(object):
             res.status = HTTP_500
             res.media = f"{e.__class__.__name__}: {e}"
 
-        session.close()
+        self.session_factory.remove()
 
         return res
 
@@ -74,7 +74,7 @@ class DatabaseResource(object):
             res.media = f"{e.__class__.__name__}: {e}"
             session.rollback()
 
-        session.close()
+        self.session_factory.remove()
 
         return res
 
@@ -94,7 +94,8 @@ class DatabaseResource(object):
             res.media = f"{e.__class__.__name__}: {e}"
             res.status = HTTP_500
 
-        session.close()
+        self.session_factory.remove()
+
         return res
 
     def on_patch(self, req, res):
@@ -118,5 +119,6 @@ class DatabaseResource(object):
             res.media = f"{e.__class__.__name__}: {e}"
             res.status = HTTP_500
 
-        session.close()
+        self.session_factory.remove()
+
         return res
