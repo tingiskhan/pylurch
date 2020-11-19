@@ -35,29 +35,37 @@ class ModelResource(object):
         return res
 
     def on_get(self, req, res):
-        return self._apply_and_parse(self._get, req, res, sc.GetParser(), sc.GetResponse())
+        return self._apply_and_parse(self._get, req, res, sc.GetRequest(), sc.GetResponse())
 
     def on_put(self, req, res):
-        return self._apply_and_parse(self._put, req, res, sc.PutParser(), sc.PutResponse())
+        return self._apply_and_parse(self._put, req, res, sc.PutRequest(), sc.PutResponse())
 
     def on_post(self, req, res):
-        return self._apply_and_parse(self._post, req, res, sc.PostParser(), sc.PostResponse())
+        return self._apply_and_parse(self._post, req, res, sc.PostRequest(), sc.PostResponse())
 
     def on_patch(self, req, res):
-        return self._apply_and_parse(self._patch, req, res, sc.PatchParser(), sc.PatchResponse())
+        return self._apply_and_parse(self._patch, req, res, sc.PatchRequest(), sc.PatchResponse())
 
     @custom_error
-    def _put(self, x: str, orient: str, name: str, y: str = None, modkwargs: Dict[str, Any] = None,
-             algkwargs: Dict[str, Any] = None, labels: List[str] = None):
+    def _put(
+        self,
+        x: str,
+        orient: str,
+        name: str,
+        y: str = None,
+        modkwargs: Dict[str, Any] = None,
+        algkwargs: Dict[str, Any] = None,
+        labels: List[str] = None,
+    ):
         # ===== Get data ===== #
-        x = self.wrap.model.parse_data(x, orient=orient)
+        x = self.wrap.model.parse_x(x, orient=orient)
 
         modkwargs = modkwargs or dict()
         akws = algkwargs or dict()
         labels = labels or list()
 
         if y is not None:
-            akws['y'] = self.wrap.model.parse_data(y, orient=orient)
+            akws["y"] = self.wrap.model.parse_y(y, orient=orient)
 
         # ===== Start background task ===== #
         key = self.manager.enqueue(self.wrap.do_run, modkwargs, x, name=name, labels=labels, **akws)

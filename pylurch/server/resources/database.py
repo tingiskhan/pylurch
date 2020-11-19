@@ -10,8 +10,9 @@ from ...utils import make_base_logger
 
 
 class DatabaseResource(object):
-    def __init__(self, schema: DatabaseSchema, session_factory: Union[scoped_session, sessionmaker],
-                 logger: Logger = None):
+    def __init__(
+        self, schema: DatabaseSchema, session_factory: Union[scoped_session, sessionmaker], logger: Logger = None
+    ):
         """
         Implements a base resources for exposing database models.
         :param schema: The schema to use, must be marshmallow.Schema
@@ -57,7 +58,7 @@ class DatabaseResource(object):
 
     def on_put(self, req, res):
         objs = deserialize(req.media, self.schema, many=True, dump_only=SERIALIZATION_IGNORE)
-        self.logger.info(f'Now trying to create {len(objs):n} objects')
+        self.logger.info(f"Now trying to create {len(objs):n} objects")
         session = self.session_factory()
 
         try:
@@ -66,7 +67,7 @@ class DatabaseResource(object):
                 session.flush()
 
             session.commit()
-            self.logger.info(f'Successfully created {len(objs):n} objects, now trying to serialize')
+            self.logger.info(f"Successfully created {len(objs):n} objects, now trying to serialize")
             res.media = serialize(objs, self.schema, many=True)
         except Exception as e:
             self.logger.exception(e)
@@ -82,12 +83,12 @@ class DatabaseResource(object):
         session = self.session_factory()
 
         try:
-            nums = session.query(self.model).filter(self.model.id == req.params['id']).delete('fetch')
-            self.logger.info(f'Now trying to delete {nums:n} objects')
+            nums = session.query(self.model).filter(self.model.id == req.params["id"]).delete("fetch")
+            self.logger.info(f"Now trying to delete {nums:n} objects")
             session.commit()
 
-            self.logger.info(f'Successfully deleted {nums:n} objects')
-            res.media = {'deleted': nums}
+            self.logger.info(f"Successfully deleted {nums:n} objects")
+            res.media = {"deleted": nums}
         except Exception as e:
             self.logger.exception(e)
             session.rollback()
@@ -101,7 +102,7 @@ class DatabaseResource(object):
     def on_patch(self, req, res):
         objs = deserialize(req.media, self.schema, many=True)
         session = self.session_factory()
-        self.logger.info(f'Now trying to update {len(objs):n} objects')
+        self.logger.info(f"Now trying to update {len(objs):n} objects")
 
         try:
             for c in chunk(objs, Constants.ChunkSize.value):
@@ -111,7 +112,7 @@ class DatabaseResource(object):
                 session.flush()
 
             session.commit()
-            self.logger.info(f'Successfully updated {len(objs):n} objects, now trying to serialize')
+            self.logger.info(f"Successfully updated {len(objs):n} objects, now trying to serialize")
             res.media = serialize(objs, self.schema, many=True)
         except Exception as e:
             self.logger.exception(e)

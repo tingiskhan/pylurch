@@ -28,7 +28,7 @@ def custom_error(func: Callable[[object, Iterable, Dict], object]):
             if isinstance(e, HTTPBadRequest):
                 raise e
 
-            return {"message": str(e)}, HTTP_500
+            return {"message": repr(e)}, HTTP_500
 
     return wrap
 

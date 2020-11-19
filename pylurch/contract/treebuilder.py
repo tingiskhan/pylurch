@@ -7,31 +7,19 @@ from typing import Union, Type
 from .database import BaseMixin
 
 
-MAPPING = {
-    '==': eq,
-    '<=': le,
-    '<': lt,
-    '>=': ge,
-    '>': gt,
-    '!=': ne,
-    '&&': and_,
-    '||': or_
-}
+MAPPING = {"==": eq, "<=": le, "<": lt, ">=": ge, ">": gt, "!=": ne, "&&": and_, "||": or_}
 
 INVERSE_MAP = {v: k for k, v in MAPPING.items()}
 
 
-DESERIALIZERS = {
-    DateTime.__name__: lambda u: parse(u),
-    Date.__name__: lambda u: parse(u).date()
-}
+DESERIALIZERS = {DateTime.__name__: lambda u: parse(u), Date.__name__: lambda u: parse(u).date()}
 
 
 SERIALIZERS = {
     DateTime.__name__: lambda u: u.isoformat(),
     Date.__name__: lambda u: u.isoformat(),
     Enum.__name__: lambda u: f"'{u.value}'",
-    String.__name__: lambda u: f"'{u}'"
+    String.__name__: lambda u: f"'{u}'",
 }
 
 
@@ -50,10 +38,10 @@ class TreeParser(object):
     def _build_parser():
         operator = pp.Regex(">=|<=|!=|>|<|==").setName("operator")
         comparison_term = (
-                pp.pyparsing_common.iso8601_datetime.copy() |
-                pp.pyparsing_common.iso8601_date.copy() |
-                pp.pyparsing_common.number.copy() |
-                pp.QuotedString("'")
+            pp.pyparsing_common.iso8601_datetime.copy()
+            | pp.pyparsing_common.iso8601_date.copy()
+            | pp.pyparsing_common.number.copy()
+            | pp.QuotedString("'")
         )
         condition = pp.Group(pp.pyparsing_common.identifier + operator + comparison_term)
 
@@ -62,7 +50,7 @@ class TreeParser(object):
             [
                 ("&&", 2, pp.opAssoc.LEFT),
                 ("||", 2, pp.opAssoc.LEFT),
-            ]
+            ],
         )
 
         return expr

@@ -42,7 +42,7 @@ class GenericModelInterface(BaseInterface):
 
     @property
     def _address(self) -> str:
-        return f'{self._base}/{self._ep}'
+        return f"{self._base}/{self._ep}"
 
     def _is_done(self, task_id: str = None) -> (bool, Any):
         if (task_id or self._task_id) is None:
@@ -51,12 +51,19 @@ class GenericModelInterface(BaseInterface):
         resp = GetResponse().load(self._exec_req(r.get, params={"task_id": task_id or self._task_id}))
 
         if resp["status"] == Status.Failed:
-            raise Exception('Something went wrong trying to train the model! Check server logs for further details')
+            raise Exception("Something went wrong trying to train the model! Check server logs for further details")
 
         return resp["status"] == Status.Done, resp
 
-    def fit(self, x: pd.DataFrame, name: str, y: pd.DataFrame = None, wait: bool = True, labels: List[str] = None,
-            **algkwargs):
+    def fit(
+        self,
+        x: pd.DataFrame,
+        name: str,
+        y: pd.DataFrame = None,
+        wait: bool = True,
+        labels: List[str] = None,
+        **algkwargs,
+    ):
         """
         Method for fitting the model.
         :param x: The x-data
@@ -73,11 +80,11 @@ class GenericModelInterface(BaseInterface):
             "modkwargs": self._mk,
             "orient": self._orient,
             "name": name,
-            "labels": labels
+            "labels": labels,
         }
 
         if y is not None:
-            params['y'] = y.to_json(orient=self._orient)
+            params["y"] = y.to_json(orient=self._orient)
 
         return self._train(r.put, wait=wait, json=params)
 
@@ -118,7 +125,7 @@ class GenericModelInterface(BaseInterface):
             "x": x.to_json(orient=self._orient),
             "orient": self._orient,
             "as_array": as_array,
-            "kwargs": kwargs or dict()
+            "kwargs": kwargs or dict(),
         }
 
         resp = PostResponse().load(self._exec_req(r.post, json=params))
@@ -138,12 +145,7 @@ class GenericModelInterface(BaseInterface):
         Updates the model. See docs of `fit` for docs pertaining to parameters.
         """
 
-        params = {
-            "x": x.to_json(orient=self._orient),
-            "orient": self._orient,
-            "old_name": self._name,
-            "name": name
-        }
+        params = {"x": x.to_json(orient=self._orient), "orient": self._orient, "old_name": self._name, "name": name}
 
         if y is not None:
             params["y"] = y.to_json(orient=self._orient)

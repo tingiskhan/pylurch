@@ -29,7 +29,7 @@ class DatabaseInterface(BaseInterface):
         """
         An interface for defining and creating.
         """
-        super().__init__(base, '')
+        super().__init__(base, "")
         self._schema = None
 
     @decorator
@@ -74,7 +74,7 @@ class DatabaseInterface(BaseInterface):
             return res
 
         if len(res) > 1:
-            raise ValueError('More than 1 elements exist!')
+            raise ValueError("More than 1 elements exist!")
 
         if len(res) == 1:
             return res[0]
@@ -92,8 +92,8 @@ class DatabaseInterface(BaseInterface):
         deleted = 0
         schema = DatabaseSchema.get_schema(type(objects[0]))
         for obj in objects:
-            req = self._exec_req(delete, endpoint=schema.endpoint(), params={'id': obj.id})
-            deleted += req['deleted']
+            req = self._exec_req(delete, endpoint=schema.endpoint(), params={"id": obj.id})
+            deleted += req["deleted"]
 
         return deleted
 

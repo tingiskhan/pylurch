@@ -7,7 +7,7 @@ from rq import Queue
 
 class Decorator(object):
     def __init__(self, f, task, include_task=True):
-        self._task = task   # type: TaskWrapper
+        self._task = task  # type: TaskWrapper
         self._f = f
         self._include_task = include_task
 
@@ -33,8 +33,9 @@ class Decorator(object):
 
 
 class TaskWrapper(object):
-    def __init__(self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], intf: i.DatabaseInterface, args=None,
-                 kwargs=None):
+    def __init__(
+        self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], intf: i.DatabaseInterface, args=None, kwargs=None
+    ):
         """
         Defines a base class for tasks.
         """
@@ -49,12 +50,7 @@ class TaskWrapper(object):
         self._intf = intf
 
     def initialize(self, key: str = None):
-        task = db.Task(
-            key=key or uuid4().hex,
-            start_time=datetime.now(),
-            end_time=datetime.max,
-            status=e.Status.Queued
-        )
+        task = db.Task(key=key or uuid4().hex, start_time=datetime.now(), end_time=datetime.max, status=e.Status.Queued)
 
         self._db = self._intf.create(task)
         return self
@@ -90,11 +86,7 @@ class TaskWrapper(object):
         return self
 
     def fail(self, exc: Exception):
-        self._intf.create(db.TaskException(
-            task_id=self._db.id,
-            type_=exc.__class__.__name__,
-            message=str(exc)
-        ))
+        self._intf.create(db.TaskException(task_id=self._db.id, type_=exc.__class__.__name__, message=repr(exc)))
 
         self.status = e.Status.Failed
 
@@ -124,13 +116,7 @@ class RQTask(TaskWrapper):
         return queue.create_job(self._f, args=self._args, kwargs=self._kwargs, timeout=self._timeout)
 
     def initialize(self, key: str = None):
-        task = db.Task(
-            key=key,
-            start_time=datetime.now(),
-            end_time=datetime.max,
-            status=e.Status.Queued
-        )
+        task = db.Task(key=key, start_time=datetime.now(), end_time=datetime.max, status=e.Status.Queued)
 
         self._db = self._intf.create(task)
         return self
-

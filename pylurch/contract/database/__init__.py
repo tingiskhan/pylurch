@@ -9,9 +9,7 @@ class BaseMixin(object):
     def __tablename__(cls):
         return cls.__name__
 
-    __mapper_args__ = {
-        'always_refresh': True
-    }
+    __mapper_args__ = {"always_refresh": True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     upd_at = Column(DateTime, nullable=True, default=datetime.now)

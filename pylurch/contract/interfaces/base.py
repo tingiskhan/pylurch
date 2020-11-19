@@ -9,24 +9,22 @@ class BaseInterface(object):
         :param endpoint: The endpoint of the server
         """
 
-        self._base = base if not base.endswith('/') else base[:-1]
+        self._base = base if not base.endswith("/") else base[:-1]
 
-        if endpoint.startswith('/'):
-            raise ValueError('The endpoint should not begin with a `/`!')
+        if endpoint.startswith("/"):
+            raise ValueError("The endpoint should not begin with a `/`!")
 
         self._ep = endpoint
-        self._headers = {
-            'Content-type': 'application/json'
-        }
+        self._headers = {"Content-type": "application/json"}
 
     def url(self, endpoint: str = None):
-        return f'{self._base}/{endpoint or self._ep}'
+        return f"{self._base}/{endpoint or self._ep}"
 
     def _exec_req(self, meth, endpoint: str = None, **kwargs) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         resp = meth(self.url(endpoint), headers=self._headers, **kwargs)
 
         if resp.status_code != 200:
-            raise Exception(f'Got error code {resp.status_code}: {resp.text}')
+            raise Exception(f"Got error code {resp.status_code}: {resp.text}")
 
         return resp.json()
 

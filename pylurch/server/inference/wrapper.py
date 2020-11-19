@@ -26,8 +26,17 @@ class ModelWrapper(object):
     def model(self) -> InferenceModel:
         return self._model
 
-    def _run(self, func: Func, model: T, x: FrameOrArray, name: str, task_obj: db.Task, y: FrameOrArray = None,
-             labels: List[str] = None, **kwargs) -> db.TrainingSession:
+    def _run(
+        self,
+        func: Func,
+        model: T,
+        x: FrameOrArray,
+        name: str,
+        task_obj: db.Task,
+        y: FrameOrArray = None,
+        labels: List[str] = None,
+        **kwargs,
+    ) -> db.TrainingSession:
 
         modname = self._model.name()
         if self._model.is_derived:
@@ -47,7 +56,7 @@ class ModelWrapper(object):
             backend=self._model.serializer_backend(),
             task_id=task_obj.id,
             status=e.Status.Unknown,
-            version=1 if latest is None else (latest.version + 1)
+            version=1 if latest is None else (latest.version + 1),
         )
 
         session = self._intf.create(session)
@@ -61,10 +70,7 @@ class ModelWrapper(object):
         as_bytes = self._model.serialize(res, x)
 
         # ==== Save model ===== #
-        data = db.TrainingResult(
-            session_id=session.id,
-            bytes=as_bytes
-        )
+        data = db.TrainingResult(session_id=session.id, bytes=as_bytes)
 
         self.logger.info(f"Now trying to persist '{modname}' with '{name}'")
         self._intf.create(data)
@@ -88,21 +94,22 @@ class ModelWrapper(object):
     def do_run(self, modkwargs, x: FrameOrArray, name: str, y: FrameOrArray = None, labels: List[str] = None, **kwargs):
         self._run(self._model.fit, self._model.make_model(**modkwargs), x, name=name, y=y, labels=labels, **kwargs)
 
-    def do_update(self, old_name: str, x: FrameOrArray, name: str, y: FrameOrArray = None,
-                  labels: List[str] = None, **kwargs):
+    def do_update(
+        self, old_name: str, x: FrameOrArray, name: str, y: FrameOrArray = None, labels: List[str] = None, **kwargs
+    ):
         res = self._run(self._model.update, self.load(old_name), x, name=name, y=y, labels=labels, **kwargs)
         old = self.get_session(old_name)
 
         # ===== Create link ===== #
-        link = db.UpdatedSession(
-            base=old.id,
-            new=res.id
-        )
+        link = db.UpdatedSession(base=old.id, new=res.id)
 
         self._intf.create(link)
 
     def do_predict(self, model_name: str, x, orient, as_array=False, **kwargs):
         x_hat = self._model.predict(self.load(model_name), self._model.parse_data(x, orient=orient), **kwargs)
+
+        if isinstance(x_hat, pd.Series):
+            x_hat = x_hat.to_frame(x_hat.name or "y")
 
         if as_array and isinstance(x_hat, pd.DataFrame):
             x_resp = x_hat.values.tolist()

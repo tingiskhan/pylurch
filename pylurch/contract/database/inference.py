@@ -34,14 +34,10 @@ class TrainingSession(BaseMixin, Base):
     backend = Column(Enum(SerializerBackend, create_constraint=False, native_enum=False), nullable=False)
 
     status = custom_column_property(column_property, "status")(
-        select([Task.status]).where(Task.id == task_id).correlate_except(Task),
-        nullable=False,
-        default=Status.Unknown
+        select([Task.status]).where(Task.id == task_id).correlate_except(Task), nullable=False, default=Status.Unknown
     )
 
-    __table_args__ = (
-        UniqueConstraint(model_id, name, version),
-    )
+    __table_args__ = (UniqueConstraint(model_id, name, version),)
 
 
 class TrainingResult(BaseMixin, Base):

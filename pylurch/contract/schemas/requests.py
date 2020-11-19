@@ -8,26 +8,21 @@ class FitParser(Schema):
     name = f.String(required=True)
 
 
-class PutParser(FitParser):
+class PutRequest(FitParser):
     modkwargs = f.Dict(required=False, missing=dict())
     algkwargs = f.Dict(required=False, missing=dict())
     labels = f.List(f.String, required=False, missing=list(), allow_none=True)
 
 
-class GetParser(Schema):
+class GetRequest(Schema):
     task_id = f.String(required=True)
 
 
-class PatchParser(FitParser):
+class PatchRequest(FitParser):
     old_name = f.String(required=True)
     labels = f.List(f.String, required=False, missing=list())
 
 
-class PostParser(FitParser):
+class PostRequest(FitParser):
     as_array = f.Boolean(required=False, missing=False)
     kwargs = f.Dict(required=False, missing=dict())
-
-
-
-
-
