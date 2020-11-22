@@ -106,7 +106,7 @@ class ModelWrapper(object):
         self._intf.create(link)
 
     def do_predict(self, model_name: str, x, orient, as_array=False, **kwargs):
-        x_hat = self._model.predict(self.load(model_name), self._model.parse_data(x, orient=orient), **kwargs)
+        x_hat = self._model.predict(self.load(model_name), x, **kwargs)
 
         if isinstance(x_hat, pd.Series):
             x_hat = x_hat.to_frame(x_hat.name or "y")

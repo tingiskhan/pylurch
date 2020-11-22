@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Dict, Union, TypeVar
+from typing import Dict, Union, TypeVar, Tuple
 import numpy as np
 import dill
 import onnxruntime as rt
@@ -42,14 +42,11 @@ class InferenceModel(object):
 
         return dict()
 
-    def parse_data(self, data: str, **kwargs) -> FrameOrArray:
-        return pd.read_json(data, **kwargs).sort_index()
+    def parse_x_y(self, x: str, y: str = None, **kwargs) -> Tuple[FrameOrArray, ...]:
+        parsed_x = pd.read_json(x, **kwargs).sort_index()
+        parsed_y = y if y is None else pd.read_json(y, **kwargs).sort_index()
 
-    def parse_x(self, data: str, **kwargs) -> FrameOrArray:
-        return self.parse_data(data, **kwargs)
-
-    def parse_y(self, data: str, **kwargs) -> FrameOrArray:
-        return self.parse_data(data, **kwargs)
+        return parsed_x, parsed_y
 
     def make_model(self, **kwargs) -> T:
         raise NotImplementedError()

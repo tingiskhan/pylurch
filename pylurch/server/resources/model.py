@@ -58,17 +58,14 @@ class ModelResource(object):
         labels: List[str] = None,
     ):
         # ===== Get data ===== #
-        x = self.wrap.model.parse_x(x, orient=orient)
+        x_d, y_d = self.wrap.model.parse_x_y(x, y=y, orient=orient)
 
         modkwargs = modkwargs or dict()
         akws = algkwargs or dict()
         labels = labels or list()
 
-        if y is not None:
-            akws["y"] = self.wrap.model.parse_y(y, orient=orient)
-
         # ===== Start background task ===== #
-        key = self.manager.enqueue(self.wrap.do_run, modkwargs, x, name=name, labels=labels, **akws)
+        key = self.manager.enqueue(self.wrap.do_run, modkwargs, x_d, name=name, labels=labels, y=y_d, **akws)
 
         return {"task_id": key, "status": self.manager.check_status(key), "name": name}, HTTP_200
 
@@ -80,8 +77,10 @@ class ModelResource(object):
             self.logger.info(f"No model of '{self.wrap.model.name()}' and instance '{name}' exists")
             return {"task_id": None, "status": Status.Unknown}, HTTP_400
 
+        x_d, _ = self.wrap.model.parse_x_y(x, y=None, orient=orient)
+
         self.logger.info(f"Predicting values using model '{self.wrap.model.name()}' and instance '{name}'")
-        key = self.manager.enqueue(self.wrap.do_predict, name, x, orient, as_array=as_array, **kwargs)
+        key = self.manager.enqueue(self.wrap.do_predict, name, x_d, orient, as_array=as_array, **kwargs)
 
         return {"task_id": key, "status": self.manager.check_status(key)}, HTTP_200
 
@@ -111,13 +110,9 @@ class ModelResource(object):
             self.logger.info(f"No model of '{self.wrap.model.name()}' and instance '{name}' exists")
             return {"status": Status.Unknown}, HTTP_400
 
-        x = self.wrap.model.parse_data(x, orient=orient)
-
-        kwargs = dict()
-        if y is not None:
-            kwargs["y"] = self.wrap.model.parse_data(y, orient=orient)
+        x_d, y_d = self.wrap.model.parse_x_y(x, y, orient=orient)
 
         # ===== Let it persist run first ===== #
-        key = self.manager.enqueue(self.wrap.do_update, old_name, x, name=name, labels=labels, **kwargs)
+        key = self.manager.enqueue(self.wrap.do_update, old_name, x_d, name=name, labels=labels, y=y_d)
 
         return {"status": self.manager.check_status(name), "task_id": key, "name": name}, HTTP_200
