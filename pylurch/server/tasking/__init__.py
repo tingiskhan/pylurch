@@ -1,2 +1,1 @@
-from .executor import ExecutorWrapper
-from .redis import RQWrapper
+from pylurch.server.tasking.runners.executor import ExecutorRunner

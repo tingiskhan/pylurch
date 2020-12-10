@@ -1,12 +1,12 @@
 import requests as r
 from time import sleep
 import pandas as pd
-from .base import BaseInterface
-from ..schemas import GetResponse, PutResponse, PostResponse
-from ..enums import Status
 import numpy as np
 import json
 from typing import Any, List
+from pyalfred.contract.interface import BaseInterface
+from ..schema import GetResponse, PutResponse, PostResponse
+from ..enums import Status
 
 
 # TODO: Improve this
@@ -51,7 +51,7 @@ class GenericModelInterface(BaseInterface):
         resp = GetResponse().load(self._exec_req(r.get, params={"task_id": task_id or self._task_id}))
 
         if resp["status"] == Status.Failed:
-            raise Exception("Something went wrong trying to train the model! Check server logs for further details")
+            raise Exception(f"Something went wrong trying to run the model: {resp['message']}")
 
         return resp["status"] == Status.Done, resp
 

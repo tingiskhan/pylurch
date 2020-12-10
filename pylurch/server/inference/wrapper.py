@@ -2,9 +2,9 @@ import pandas as pd
 from typing import Union, Callable, Any, Dict, Optional, List
 from logging import Logger
 import numpy as np
-from pylurch.contract.interfaces import DatabaseInterface
-from pylurch.contract import database as db, enums as e
-from ...utils import make_base_logger
+from pyalfred.contract.interface import DatabaseInterface
+from pylurch.contract import database as db
+from pyalfred.server.utils import make_base_logger
 from .model import InferenceModel, T
 
 
@@ -32,7 +32,6 @@ class ModelWrapper(object):
         model: T,
         x: FrameOrArray,
         name: str,
-        task_obj: db.Task,
         y: FrameOrArray = None,
         labels: List[str] = None,
         **kwargs,
@@ -54,8 +53,6 @@ class ModelWrapper(object):
             model_id=db_model.id,
             name=name,
             backend=self._model.serializer_backend(),
-            task_id=task_obj.id,
-            status=e.Status.Unknown,
             version=1 if latest is None else (latest.version + 1),
         )
 
@@ -143,7 +140,7 @@ class ModelWrapper(object):
 
         def f(u: db.TrainingSession):
             if only_succeeded:
-                return (u.name == name) & (u.model_id == mod.id) & (u.status == e.Status.Done)
+                return (u.name == name) & (u.model_id == mod.id) & (u.has_result == True)
 
             return (u.name == name) & (u.model_id == mod.id)
 

@@ -1,30 +1,24 @@
 from typing import Dict, Callable, Tuple, Any
-from pylurch.contract import enums as e, database as db, interfaces as i
 from datetime import datetime
 from uuid import uuid4
-from rq import Queue
+from pylurch.contract import enums as e, database as db
+from pyalfred.contract.interface import DatabaseInterface
 
 
-class Decorator(object):
+class FunctionDecorator(object):
     def __init__(self, f, task, include_task=True):
-        self._task = task  # type: TaskWrapper
+        self._task = task  # type: BaseTask
         self._f = f
         self._include_task = include_task
 
     def __call__(self, *args, **kwargs):
         try:
-            # ===== Try getting result ===== #
             self._task.status = e.Status.Running
 
             if self._include_task:
                 kwargs["task_obj"] = self._task.db
 
-            res = self._f(*args, **kwargs)
-
-            # ===== Update task status ===== #
-            self._task.status = e.Status.Done
-
-            return res
+            return self._f(*args, **kwargs)
 
         except Exception as exc:
             self._task.fail(exc)
@@ -32,15 +26,13 @@ class Decorator(object):
             raise exc
 
 
-class TaskWrapper(object):
-    def __init__(
-        self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], intf: i.DatabaseInterface, args=None, kwargs=None
-    ):
+class BaseTask(object):
+    def __init__(self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], intf: DatabaseInterface, args=None, kwargs=None):
         """
         Defines a base class for tasks.
         """
 
-        self._f = Decorator(f, self)
+        self._f = FunctionDecorator(f, self)
         self._args = args
         self._kwargs = kwargs
 
@@ -100,23 +92,4 @@ class TaskWrapper(object):
             else:
                 self._metas[k] = self._intf.update(v)
 
-        return self
-
-
-class RQTask(TaskWrapper):
-    """
-    Class for tasking queues with 'RQ'.
-    """
-
-    def __init__(self, f, intf, args=None, kwargs=None):
-        super().__init__(f, intf, args=args, kwargs=kwargs)
-        self._timeout = 2 * 3600
-
-    def make_rqtask(self, queue: Queue):
-        return queue.create_job(self._f, args=self._args, kwargs=self._kwargs, timeout=self._timeout)
-
-    def initialize(self, key: str = None):
-        task = db.Task(key=key, start_time=datetime.now(), end_time=datetime.max, status=e.Status.Queued)
-
-        self._db = self._intf.create(task)
         return self

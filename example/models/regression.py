@@ -11,7 +11,7 @@ class LinearRegressionModel(InferenceModel):
 
     def serialize(self, model, x, y=None):
         inputs = [
-            ('x', FloatTensorType([None, x.shape[-1]])),
+            ("x", FloatTensorType([None, x.shape[-1]])),
         ]
 
         return convert_sklearn(model, self.name(), inputs).SerializeToString()
@@ -23,9 +23,7 @@ class LinearRegressionModel(InferenceModel):
         return LinearRegression(**kwargs)
 
     def add_metadata(self, model: LinearRegression, **kwargs):
-        return {
-            'score': model.score(kwargs['x'], kwargs['y'])
-        }
+        return {"score": model.score(kwargs["x"], kwargs["y"])}
 
 
 class LogisticRegressionModel(LinearRegressionModel):

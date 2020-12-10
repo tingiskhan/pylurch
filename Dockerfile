@@ -7,13 +7,11 @@ RUN apt-get update && apt-get install build-essential -y
 RUN conda install gxx_linux-64
 RUN conda install -c anaconda pyyaml gunicorn psycopg2
 
-RUN conda install pytorch torchvision cpuonly -c pytorch
-RUN conda install -c conda-forge pytorch-lightning
-
 COPY pylurch ./pylurch/pylurch
 COPY setup.py ./pylurch
 
 RUN pip install ./pylurch
+RUN rm -rf ./pylurch
 
 COPY example ./example
 
