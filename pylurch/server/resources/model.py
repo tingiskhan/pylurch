@@ -2,14 +2,14 @@ from falcon.errors import HTTPBadRequest
 from pylurch.contract.enums import Status
 from typing import Dict, Any, List
 from falcon.status_codes import HTTP_200, HTTP_400, HTTP_500
-from pyalfred.contract.interface import DatabaseInterface
 import pylurch.contract.schema as sc
-from pylurch.server.tasking.runners.base import BaseRunner
+from pylurch.contract.interface import SessionInterface
+from ..tasking.runners.base import BaseRunner
 from ..inference import InferenceModel, ModelWrapper
 
 
 class ModelResource(object):
-    def __init__(self, model_resource: InferenceModel, manager: BaseRunner, intf: DatabaseInterface, **kwargs):
+    def __init__(self, model_resource: InferenceModel, manager: BaseRunner, intf: SessionInterface, **kwargs):
         """
         Base object for exposing model object.
         :param model_resource: The model resource

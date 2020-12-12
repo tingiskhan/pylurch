@@ -2,7 +2,7 @@ import pandas as pd
 from typing import Union, Callable, Any, Dict, Optional, List
 from logging import Logger
 import numpy as np
-from pyalfred.contract.interface import DatabaseInterface
+from pylurch.contract.interface import SessionInterface
 from pylurch.contract import database as db
 from pyalfred.server.utils import make_base_logger
 from .model import InferenceModel, T
@@ -13,7 +13,7 @@ Func = Callable[[T, FrameOrArray, Optional[FrameOrArray], Dict[str, Any]], Any]
 
 
 class ModelWrapper(object):
-    def __init__(self, model: InferenceModel, intf: DatabaseInterface, logger: Logger = None):
+    def __init__(self, model: InferenceModel, intf: SessionInterface, logger: Logger = None):
         """
         Defines a base class for performing inference etc.
         """
@@ -37,56 +37,30 @@ class ModelWrapper(object):
         **kwargs,
     ) -> db.TrainingSession:
 
-        modname = self._model.name()
+        model_name = self._model.name()
         if self._model.is_derived:
-            msg = f"'{modname}' inherits from '{self._model.base.name()}' and is thus not trainable!"
+            msg = f"'{model_name}' inherits from '{self._model.base.name()}' and is thus not trainable!"
             raise NotImplementedError(msg)
 
-        db_model = self._get_model()
-        self.logger.info(f"Starting training of '{modname}' with '{name}' and using {x.shape[0]} observations")
+        with self._intf.begin_session(model_name, name) as session:
+            self.logger.info(f"Starting training of '{model_name}' with '{name}' and using {x.shape[0]} observations")
 
-        # ===== Get latest sessions ===== #
-        latest = self.get_session(name, only_succeeded=False)
+            res = func(model, x, y=y, **kwargs)
+            self.logger.info(f"Successfully finished training '{model_name}' with '{name}'")
 
-        # ===== Save session ===== #
-        session = db.TrainingSession(
-            model_id=db_model.id,
-            name=name,
-            backend=self._model.serializer_backend(),
-            version=1 if latest is None else (latest.version + 1),
-        )
+            self.logger.info(f"Now trying to serialize '{model_name}' with '{name}'")
+            as_bytes = self._model.serialize(res, x)
 
-        session = self._intf.create(session)
+            session.add_result(as_bytes, self._model.serializer_backend())
 
-        # ===== Fit/update ===== #
-        res = func(model, x, y=y, **kwargs)
-        self.logger.info(f"Successfully finished training '{modname}' with '{name}'")
+            # ===== Save labels ===== #
+            session.add_labels(labels)
 
-        # ===== Serialize model ===== #
-        self.logger.info(f"Now trying to serialize '{modname}' with '{name}'")
-        as_bytes = self._model.serialize(res, x)
+            # ===== Save meta data ===== #
+            meta_data = self._model.add_metadata(res, x=x, y=y, **kwargs)
+            session.add_metadatas(meta_data)
 
-        # ==== Save model ===== #
-        data = db.TrainingResult(session_id=session.id, bytes=as_bytes)
-
-        self.logger.info(f"Now trying to persist '{modname}' with '{name}'")
-        self._intf.create(data)
-
-        self.logger.info(f"Successfully persisted '{self._model.name()}' with '{name}'")
-
-        # ===== Save labels ===== #
-        labels = [db.Label(session_id=session.id, label=lab) for lab in labels]
-        if any(labels):
-            self._intf.create(labels)
-
-        # ===== Save meta data ===== #
-        meta_data = self._model.add_metadata(res, x=x, y=y, **kwargs)
-        md = [db.MetaData(session_id=session.id, key=k, value=v) for k, v in meta_data.items()]
-
-        if any(md):
-            self._intf.create(md)
-
-        return session
+            return session.session
 
     def do_run(self, modkwargs, x: FrameOrArray, name: str, y: FrameOrArray = None, labels: List[str] = None, **kwargs):
         self._run(self._model.fit, self._model.make_model(**modkwargs), x, name=name, y=y, labels=labels, **kwargs)
@@ -120,42 +94,19 @@ class ModelWrapper(object):
             "orient": orient,
         }
 
-    def _get_model(self) -> db.Model:
-        model = self._intf.get(db.Model, lambda u: u.name == self._model.name(), one=True)
-
-        if model is None:
-            model = self._intf.create(db.Model(name=self._model.name()))
-
-        return model
-
-    def get_session(self, name: str, only_succeeded=False) -> Optional[db.TrainingSession]:
-        modname = self._model.name()
+    def get_session(self, session_name: str, only_succeeded=False) -> Optional[db.TrainingSession]:
         if self._model.is_derived:
-            self.logger.info(f"'{modname}' is derived and loads model from {self._model.base.name()}")
-            return ModelWrapper(self._model.base, self._intf).get_session(name)
+            self.logger.info(f"'{self._model.name()}' is derived and loads model from {self._model.base.name()}")
+            return ModelWrapper(self._model.base, self._intf).get_session(session_name)
 
-        mod = self._intf.get(db.Model, lambda u: u.name == modname, one=True)
-        if mod is None:
-            return None
-
-        def f(u: db.TrainingSession):
-            if only_succeeded:
-                return (u.name == name) & (u.model_id == mod.id) & (u.has_result == True)
-
-            return (u.name == name) & (u.model_id == mod.id)
-
-        return self._intf.get(db.TrainingSession, f, latest=True)
+        return self._intf.get_session(self._model.name(), session_name, only_succeeded=only_succeeded)
 
     def load(self, session_name: str) -> T:
-        """
-        Method for loading the latest successfully trained model with 'session_name'.
-        """
-
         if self._model.is_derived:
             self.logger.info(f"'{self._model.name()}' is derived and loads model from {self._model.base.name()}")
             return ModelWrapper(self._model.base, self._intf).load(session_name)
 
-        session = self.get_session(session_name)
+        session = self.get_session(session_name, only_succeeded=True)
 
         if session is None:
             return None
