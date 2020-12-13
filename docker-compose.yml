@@ -9,7 +9,7 @@ services:
       - 5432:5432
   db_server:
     build: .
-    entrypoint: gunicorn -b :8080 -w 3 example.db_app:init_app()
+    entrypoint: uvicorn example.db_app:init_app --port 8080 --host 0.0.0.0 --factory --workers 3
     environment:
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:postgres@postgres:5432/postgres
     ports:

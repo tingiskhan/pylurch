@@ -1,4 +1,4 @@
-from falcon import API as Api
+from starlette.applications import Starlette
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
 import os
@@ -23,11 +23,11 @@ def init_app():
     sleep(uniform(0.0, 5.0))
     Base.metadata.create_all(bind=engine)
 
-    api = Api()
+    api = Starlette()
 
     for base in AutoMarshmallowSchema.get_subclasses(Base):
         s = AutoMarshmallowSchema.generate_schema(base)
-        api.add_route(f"/{s.endpoint()}", DatabaseResource(s, Session, mixin_ignore=BaseMixin))
+        api.add_route(f"/{s.endpoint()}", DatabaseResource.make_endpoint(s, Session, mixin_ignore=BaseMixin))
 
     logger = make_base_logger(__name__)
     logger.info("Successfully registered all views")

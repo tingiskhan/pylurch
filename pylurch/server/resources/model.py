@@ -1,124 +1,116 @@
-from falcon.errors import HTTPBadRequest
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.status import HTTP_400_BAD_REQUEST
+from starlette.endpoints import HTTPEndpoint
 from pylurch.contract.enums import Status
-from typing import Dict, Any, List
-from falcon.status_codes import HTTP_200, HTTP_400, HTTP_500
 import pylurch.contract.schema as sc
 from pylurch.contract.interface import SessionInterface
 from ..tasking.runners.base import BaseRunner
 from ..inference import InferenceModel, ModelWrapper
 
 
-class ModelResource(object):
-    def __init__(self, model_resource: InferenceModel, manager: BaseRunner, intf: SessionInterface, **kwargs):
+class ModelResource(HTTPEndpoint):
+    wrap: ModelWrapper = None
+    manager: BaseRunner = None
+
+    @classmethod
+    def make_endpoint(cls, model_resource: InferenceModel, manager: BaseRunner, intf: SessionInterface, **kwargs):
         """
         Base object for exposing model object.
         :param model_resource: The model resource
         :param manager: The task manager
         """
 
-        self.wrap = ModelWrapper(model_resource, intf, **kwargs)
-        self.manager = manager
+        state_dict = {
+            "wrap": ModelWrapper(model_resource, intf, **kwargs),
+            "manager": manager
+        }
+
+        return type(f"{cls.__name__}_{model_resource.name()}", (ModelResource,), state_dict)
 
     @property
     def logger(self):
         return self.wrap.logger
 
-    def _apply_and_parse(self, meth, request, res, parser, resp):
-        try:
-            if meth == self.get_result:
-                func_result, status = meth(**parser.load(request.params))
-            else:
-                func_result, status = meth(**parser.load(request.media))
+    async def get(self, req: Request):
+        task_id = sc.GetRequest().load(req.query_params)["task_id"]
 
-        except Exception as e:
-            self.logger.exception("Failed in task", e)
-            if isinstance(e, HTTPBadRequest):
-                raise e
-
-            status = HTTP_500
-            func_result = {"message": repr(e)}
-
-        res.media = resp.dump(func_result)
-        res.status = status
-
-        return res
-
-    def on_get(self, req, res):
-        return self._apply_and_parse(self.get_result, req, res, sc.GetRequest(), sc.GetResponse())
-
-    def on_put(self, req, res):
-        return self._apply_and_parse(self.train, req, res, sc.PutRequest(), sc.PutResponse())
-
-    def on_post(self, req, res):
-        return self._apply_and_parse(self.predict, req, res, sc.PostRequest(), sc.PostResponse())
-
-    def on_patch(self, req, res):
-        return self._apply_and_parse(self.update, req, res, sc.PatchRequest(), sc.PatchResponse())
-
-    def train(
-        self,
-        x: str,
-        orient: str,
-        name: str,
-        y: str = None,
-        modkwargs: Dict[str, Any] = None,
-        algkwargs: Dict[str, Any] = None,
-        labels: List[str] = None,
-    ):
-        x_d, y_d = self.wrap.model.parse_x_y(x, y=y, orient=orient)
-
-        modkwargs = modkwargs or dict()
-        akws = algkwargs or dict()
-        labels = labels or list()
-
-        key = self.manager.enqueue(self.wrap.do_run, modkwargs, x_d, name=name, labels=labels, y=y_d, **akws)
-
-        return {"task_id": key, "status": self.manager.check_status(key), "name": name}, HTTP_200
-
-    def predict(self, name: str, x: str, orient: str, as_array: bool, kwargs: Dict[str, Any]):
-        exists = self.wrap.session_exists(name)
-
-        if not exists:
-            self.logger.info(f"No model of '{self.wrap.model.name()}' and instance '{name}' exists")
-            return {"task_id": None, "status": Status.Unknown}, HTTP_400
-
-        x_d, _ = self.wrap.model.parse_x_y(x, y=None, orient=orient)
-        key = self.manager.enqueue(self.wrap.do_predict, name, x_d, orient, as_array=as_array, **kwargs)
-
-        return {"task_id": key, "status": self.manager.check_status(key)}, HTTP_200
-
-    def get_result(self, task_id):
         status = self.manager.check_status(task_id)
         resp = {"status": status}
 
+        dumper = sc.GetResponse()
         if status != Status.Done:
             if status == Status.Failed:
                 exc = self.manager.get_exception(task_id)
                 if exc is not None:
                     resp["message"] = exc.message
 
-            return resp, HTTP_200
+            return JSONResponse(dumper.dump(resp))
 
         result = self.manager.get_result(task_id)
         if result is None:
-            return resp, HTTP_200
+            return JSONResponse(dumper.dump(resp))
 
         self.logger.info(f"Got result for task id: {task_id}")
 
         resp.update(**result)
 
-        return resp, HTTP_200
+        return JSONResponse(dumper.dump(resp))
 
-    def update(self, name: str, x: str, orient: str, old_name: str, y: str = None, labels: List[str] = None):
-        exists = self.wrap.session_exists(old_name)
+    async def put(self, req: Request):
+        put_req = sc.PutRequest().load(await req.json())
 
+        x_d, y_d = self.wrap.model.parse_x_y(put_req["x"], y=put_req["y"], orient=put_req["orient"])
+
+        modkwargs = put_req["modkwargs"] or dict()
+        akws = put_req["algkwargs"] or dict()
+        labels = put_req["labels"] or list()
+
+        name = put_req["name"]
+        key = self.manager.enqueue(
+            self.wrap.do_run, modkwargs, x_d, name=name, labels=labels, y=y_d, **akws
+        )
+
+        resp = sc.PutResponse().dump({"task_id": key, "status": self.manager.check_status(key), "name": name})
+        return JSONResponse(resp)
+
+    async def post(self, req: Request):
+        post_req = sc.PostRequest().load(await req.json())
+
+        name = post_req["name"]
+        exists = self.wrap.session_exists(name)
+
+        dumper = sc.PostResponse()
         if not exists:
             self.logger.info(f"No model of '{self.wrap.model.name()}' and instance '{name}' exists")
-            return {"status": Status.Unknown}, HTTP_400
+            return JSONResponse(dumper.dump({"task_id": None, "status": Status.Unknown}), HTTP_400_BAD_REQUEST)
 
-        x_d, y_d = self.wrap.model.parse_x_y(x, y, orient=orient)
+        orient = post_req["orient"]
+        x_d, _ = self.wrap.model.parse_x_y(post_req["x"], y=None, orient=orient)
+        key = self.manager.enqueue(
+            self.wrap.do_predict, name, x_d, orient, as_array=post_req["as_array"], **post_req["kwargs"]
+        )
 
-        # ===== Let it persist run first ===== #
-        key = self.manager.enqueue(self.wrap.do_update, old_name, x_d, name=name, labels=labels, y=y_d)
+        resp = dumper.dump({"task_id": key, "status": self.manager.check_status(key)})
+        return JSONResponse(resp)
 
-        return {"status": self.manager.check_status(name), "task_id": key, "name": name}, HTTP_200
+    async def patch(self, req: Request):
+        patch_req = sc.PatchRequest().load(await req.json())
+
+        old_name = patch_req["old_name"]
+        exists = self.wrap.session_exists(old_name)
+        dumper = sc.PatchRequest()
+
+        if not exists:
+            self.logger.info(f"No model of '{self.wrap.model.name()}' and instance '{old_name}' exists")
+            return JSONResponse(dumper.dump({"status": Status.Unknown}), HTTP_400_BAD_REQUEST)
+
+        x_d, y_d = self.wrap.model.parse_x_y(patch_req["x"], patch_req["y"], orient=patch_req["orient"])
+
+        name = patch_req["name"]
+        key = self.manager.enqueue(
+            self.wrap.do_update, old_name, x_d, name=name, labels=patch_req["labels"], y=y_d
+        )
+
+        resp = dumper.dump({"status": self.manager.check_status(name), "task_id": key, "name": name})
+        return JSONResponse(resp)
