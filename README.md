@@ -1,5 +1,5 @@
 # pylurch
-Lightweight [Falcon](https://falcon.readthedocs.io/en/stable/) application for serving ML models. Please note that is
+Lightweight [Starlette](https://www.starlette.io/) application for serving ML models. Please note that is
 just a fun sideproject, as such, there might be bugs etc. and you'd be far better off using something like 
 [MLFlow](https://www.mlflow.org) or similar.
 
