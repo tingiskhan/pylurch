@@ -22,4 +22,4 @@ Base = declarative_base()
 SERIALIZATION_IGNORE = tuple(k for (k, v) in vars(BaseMixin).items() if isinstance(v, Column))
 
 from .task import Task, TaskMeta, TaskException
-from .inference import Score, TrainingSession, Model, UpdatedSession, TrainingResult, Label, Package
+from .inference import Score, TrainingSession, Model, UpdatedSession, Result, Label, Package

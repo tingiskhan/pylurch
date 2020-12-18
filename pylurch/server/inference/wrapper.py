@@ -111,7 +111,7 @@ class ModelWrapper(object):
         if session is None:
             return None
 
-        res = self._intf.get(db.TrainingResult, lambda u: u.session_id == session.id, one=True)
+        res = self._intf.get(db.Result, lambda u: u.session_id == session.id, one=True)
         return self._model.deserialize(res.bytes)
 
     def session_exists(self, session_name: str) -> bool:

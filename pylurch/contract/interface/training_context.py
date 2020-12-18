@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 from pyalfred.contract.interface import DatabaseInterface
-from ..database import TrainingSession, TrainingResult, Label, Score, Package
+from ..database import TrainingSession, Result, Label, Score, Package
 from ..enums import SerializerBackend
 
 
@@ -53,7 +53,7 @@ class TrainingContext(object):
 
     @decorator("result", lambda *args: True)
     def add_result(self, model: bytes, backend: SerializerBackend):
-        return TrainingResult(session_id=self._session.id, bytes=model, backend=backend)
+        return Result(session_id=self._session.id, bytes=model, backend=backend)
 
     def add_packages(self, packages: Dict[str, str]):
         for k, v in packages.items():

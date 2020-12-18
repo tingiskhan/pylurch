@@ -9,7 +9,7 @@ class Model(BaseMixin, Base):
     name = Column(String(255), nullable=False, unique=True)
 
 
-class TrainingResult(BaseMixin, Base):
+class Result(BaseMixin, Base):
     session_id = Column(Integer, ForeignKey("TrainingSession.id"), nullable=False, unique=True)
     backend = Column(Enum(SerializerBackend, create_constraint=False, native_enum=False), nullable=False)
     bytes = Column(LargeBinary(), nullable=False)
@@ -22,7 +22,7 @@ class TrainingSession(BaseMixin, Base):
     version = Column(Integer(), nullable=False)
 
     has_result = custom_column_property(column_property, "has_result")(
-        select([TrainingResult.id]).where(TrainingResult.session_id == id).as_scalar() != None,
+        select([Result.id]).where(Result.session_id == id).as_scalar() != None,
         nullable=True,
         default=False
     )
