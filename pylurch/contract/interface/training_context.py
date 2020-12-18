@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 from pyalfred.contract.interface import DatabaseInterface
-from ..database import TrainingSession, TrainingResult, Label, MetaData, Package
+from ..database import TrainingSession, TrainingResult, Label, Score, Package
 from ..enums import SerializerBackend
 
 
@@ -43,13 +43,13 @@ class TrainingContext(object):
     def add_label(self, label: str):
         return Label(session_id=self._session.id, label=label)
 
-    def add_metadatas(self, meta_data: Dict[str, Any]):
-        for k, v in meta_data.items():
-            self.add_metadata(k, v)
+    def add_metadatas(self, scores: Dict[str, Any]):
+        for k, v in scores.items():
+            self.add_score(k, v)
 
     @decorator("meta_data", lambda item, key, *args: item.key == key)
-    def add_metadata(self, key: str, value: Any):
-        return MetaData(session_id=self._session.id, key=key, value=str(value))
+    def add_score(self, key: str, value: float):
+        return Score(session_id=self._session.id, key=key, value=value)
 
     @decorator("result", lambda *args: True)
     def add_result(self, model: bytes, backend: SerializerBackend):

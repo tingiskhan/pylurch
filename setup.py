@@ -21,7 +21,7 @@ setup(
     version=_get_version(),
     author="Victor Gruselius",
     author_email="victor.gruselius@gmail.com",
-    description="Library for serving machine learning models",
+    description="Lightweight library for persisting/serving machine learning models",
     packages=find_packages(include=(NAME, f"{NAME}.*")),
     install_requires=[
         "pyalfred @ git+https://github.com/tingiskhan/pyalfred#egg=pyalfred",

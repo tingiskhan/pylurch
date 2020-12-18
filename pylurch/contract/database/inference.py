@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, LargeBinary, Integer, ForeignKey, Enum, UniqueConstraint, select
+from sqlalchemy import Column, String, LargeBinary, Integer, ForeignKey, Enum, UniqueConstraint, select, Float
 from sqlalchemy.orm import column_property
 from . import Base, BaseMixin
 from ..enums import SerializerBackend
@@ -42,11 +42,11 @@ class Label(BaseMixin, Base):
     __table_args__ = (UniqueConstraint(session_id, label),)
 
 
-class MetaData(BaseMixin, Base):
+class Score(BaseMixin, Base):
     session_id = Column(Integer, ForeignKey(TrainingSession.id), nullable=False)
 
     key = Column(String(255), nullable=False)
-    value = Column(String(255), nullable=False)
+    value = Column(Float(), nullable=False)
 
     __table_args__ = (UniqueConstraint(session_id, key),)
 
