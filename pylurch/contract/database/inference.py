@@ -22,9 +22,7 @@ class TrainingSession(BaseMixin, Base):
     version = Column(Integer(), nullable=False)
 
     has_result = custom_column_property(column_property, "has_result")(
-        select([Result.id]).where(Result.session_id == id).as_scalar() != None,
-        nullable=True,
-        default=False
+        select([Result.id]).where(Result.session_id == id).as_scalar() != None, nullable=True, default=False
     )
 
     __table_args__ = (UniqueConstraint(model_id, name, version),)

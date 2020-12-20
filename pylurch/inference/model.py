@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Dict, Union, TypeVar, Tuple
+from typing import Dict, Union, TypeVar, Tuple, Any
 import numpy as np
 import dill
 import onnxruntime as rt
@@ -18,6 +18,7 @@ class InferenceModel(object):
 
         self._name = name or self.__class__.__name__
         self._base = base  # type: InferenceModel
+        self.model = None
 
     @property
     def base(self):
@@ -81,3 +82,16 @@ class InferenceModel(object):
             return pd.DataFrame(res, index=x.index, columns=["y"])
 
         return res
+
+    def do_make_model(self, **model_kwargs):
+        self.model = self.make_model(**model_kwargs)
+
+    def do_fit(
+        self,
+        x: FrameOrArray,
+        y: FrameOrArray = None,
+        model_kwargs: Dict[str, Any] = None,
+        alg_kwargs: Dict[str, Any] = None,
+    ):
+        self.do_make_model(**(model_kwargs or dict()))
+        return self.fit(self.model, x, y, **(alg_kwargs or dict()))

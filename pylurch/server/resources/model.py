@@ -21,10 +21,7 @@ class ModelResource(HTTPEndpoint):
         :param manager: The task manager
         """
 
-        state_dict = {
-            "wrap": ModelWrapper(model_resource, intf, **kwargs),
-            "manager": manager
-        }
+        state_dict = {"wrap": ModelWrapper(model_resource, intf, **kwargs), "manager": manager}
 
         return type(f"{cls.__name__}_{model_resource.name()}", (ModelResource,), state_dict)
 
@@ -67,9 +64,7 @@ class ModelResource(HTTPEndpoint):
         labels = put_req["labels"] or list()
 
         name = put_req["name"]
-        key = self.manager.enqueue(
-            self.wrap.do_run, modkwargs, x_d, name=name, labels=labels, y=y_d, **akws
-        )
+        key = self.manager.enqueue(self.wrap.do_run, modkwargs, x_d, name=name, labels=labels, y=y_d, **akws)
 
         resp = sc.PutResponse().dump({"task_id": key, "status": self.manager.check_status(key), "name": name})
         return JSONResponse(resp)
@@ -108,9 +103,7 @@ class ModelResource(HTTPEndpoint):
         x_d, y_d = self.wrap.model.parse_x_y(patch_req["x"], patch_req["y"], orient=patch_req["orient"])
 
         name = patch_req["name"]
-        key = self.manager.enqueue(
-            self.wrap.do_update, old_name, x_d, name=name, labels=patch_req["labels"], y=y_d
-        )
+        key = self.manager.enqueue(self.wrap.do_update, old_name, x_d, name=name, labels=patch_req["labels"], y=y_d)
 
         resp = dumper.dump({"status": self.manager.check_status(name), "task_id": key, "name": name})
         return JSONResponse(resp)

@@ -22,9 +22,7 @@ class SessionInterface(DatabaseInterface):
         latest_session = self._get_session(model, session_name)
 
         session = TrainingSession(
-            model_id=model.id,
-            name=session_name,
-            version=1 if latest_session is None else (latest_session.version + 1),
+            model_id=model.id, name=session_name, version=1 if latest_session is None else (latest_session.version + 1),
         )
 
         return self.create(session)

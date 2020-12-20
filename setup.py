@@ -8,10 +8,8 @@ def _get_version():
     folder = os.path.dirname(os.path.realpath(__file__))
 
     with open(os.path.join(folder, f"{NAME}/__init__.py"), "r") as f:
-        versionline = next(
-            line for line in f.readlines() if line.strip().startswith("__version__")
-        )
-        version = versionline.split("=")[-1].strip().replace("\"", "")
+        versionline = next(line for line in f.readlines() if line.strip().startswith("__version__"))
+        version = versionline.split("=")[-1].strip().replace('"', "")
 
     return version
 
