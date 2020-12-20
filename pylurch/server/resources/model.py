@@ -6,7 +6,7 @@ from pylurch.contract.enums import Status
 import pylurch.contract.schema as sc
 from pylurch.contract.interface import SessionInterface
 from ..tasking.runners.base import BaseRunner
-from ..inference import InferenceModel, ModelWrapper
+from pylurch.inference import InferenceModel, ModelWrapper
 
 
 class ModelResource(HTTPEndpoint):

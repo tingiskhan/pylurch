@@ -1,4 +1,4 @@
-from pylurch.server.inference import InferenceModel
+from pylurch.inference import InferenceModel
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.linear_model import LinearRegression, LogisticRegressionCV
