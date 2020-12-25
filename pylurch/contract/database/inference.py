@@ -3,10 +3,14 @@ from sqlalchemy.orm import column_property
 from . import Base, BaseMixin
 from ..enums import SerializerBackend
 from .utils import custom_column_property
+from .exception import ExceptionTemplate
 
 
 class Model(BaseMixin, Base):
-    name = Column(String(255), nullable=False, unique=True)
+    name = Column(String(255), nullable=False)
+    revision = Column(String(255), nullable=False)
+
+    __table_args__ = (UniqueConstraint(name, revision),)
 
 
 class Result(BaseMixin, Base):
@@ -56,3 +60,7 @@ class Package(BaseMixin, Base):
     version = Column(String(255), nullable=False)
 
     __table_args__ = (UniqueConstraint(session_id, name),)
+
+
+class SessionException(ExceptionTemplate, Base):
+    session_id = Column(Integer, ForeignKey(TrainingSession.id), nullable=False)

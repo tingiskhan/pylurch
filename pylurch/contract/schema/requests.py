@@ -9,8 +9,8 @@ class FitParser(Schema):
 
 
 class PutRequest(FitParser):
-    modkwargs = f.Dict(required=False, missing=dict())
-    algkwargs = f.Dict(required=False, missing=dict())
+    model_kwargs = f.Dict(required=False, missing=dict())
+    alg_kwargs = f.Dict(required=False, missing=dict())
     labels = f.List(f.String, required=False, missing=list(), allow_none=True)
 
 

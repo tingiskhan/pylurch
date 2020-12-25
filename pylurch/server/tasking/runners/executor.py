@@ -6,13 +6,13 @@ from pylurch.contract import enums as e, database as db
 
 
 class ExecutorRunner(BaseRunner):
-    def __init__(self, interface, executor: Executor = None):
+    def __init__(self, client, executor: Executor = None):
         """
         Class for enqueuing tasks using 'concurrent.futures.Executor' as task manager. Do note that this is for
         debugging purposes rather than production use.
         """
 
-        super().__init__(interface)
+        super().__init__(client)
 
         self._exc = executor or ThreadPoolExecutor()
         self._results = TTLCache(maxsize=1_000_000_000, ttl=60 * 60)
@@ -23,7 +23,7 @@ class ExecutorRunner(BaseRunner):
         future.add_done_callback(lambda u: self._done_callback(u, task_id=task.db.id, key=task.key))
 
     def _done_callback(self, u: Future, task_id: int, key: str):
-        task = self._intf.get(db.Task, lambda x: x.id == task_id, one=True)
+        task = self._client.get(db.Task, lambda x: x.id == task_id, one=True)
 
         if u.done():
             self._results.update({key: u.result()})
@@ -31,10 +31,10 @@ class ExecutorRunner(BaseRunner):
         else:
             task.status = e.Status.Failed
 
-        self._intf.update(task)
+        self._client.update(task)
 
     def make_task(self, f, *args, **kwargs) -> BaseTask:
-        return BaseTask(f, self._intf, args=args, kwargs=kwargs)
+        return BaseTask(f, self._client, args=args, kwargs=kwargs)
 
     def get_result(self, task_id):
         return self._results.get(task_id, None)

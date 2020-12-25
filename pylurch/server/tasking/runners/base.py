@@ -7,12 +7,12 @@ from pyalfred.contract.interface import DatabaseInterface
 
 
 class BaseRunner(object):
-    def __init__(self, interface: DatabaseInterface, logger: Logger = None):
+    def __init__(self, client: DatabaseInterface, logger: Logger = None):
         """
         Base class for enqueuing tasks.
         """
 
-        self._intf = interface
+        self._client = client
         self._logger = logger or make_base_logger(self.__class__.__name__)
 
     def make_task(self, f, *args, **kwargs) -> BaseTask:
@@ -28,7 +28,7 @@ class BaseRunner(object):
         raise NotImplementedError()
 
     def get_task(self, key) -> db.Task:
-        return self._intf.get(db.Task, lambda u: u.key == key, one=True)
+        return self._client.get(db.Task, lambda u: u.key == key, one=True)
 
     def check_status(self, key):
         task = self.get_task(key)
@@ -42,6 +42,6 @@ class BaseRunner(object):
         raise NotImplementedError()
 
     def get_exception(self, key: str) -> Optional[db.TaskException]:
-        task = self._intf.get(db.Task, lambda u: u.key == key, one=True)
+        task = self._client.get(db.Task, lambda u: u.key == key, one=True)
 
-        return self._intf.get(db.TaskException, lambda u: u.task_id == task.id, one=True)
+        return self._client.get(db.TaskException, lambda u: u.task_id == task.id, one=True)

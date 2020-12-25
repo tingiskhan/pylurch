@@ -33,5 +33,6 @@ setup(
         "cachetools",
         "dill",
         "redis",
+        "gitpython",
     ],
 )

@@ -19,12 +19,12 @@ def _when_done(task_id: int, interface: DatabaseInterface):
 
 
 class RQRunner(BaseRunner):
-    def __init__(self, conn: Redis, interface, **kwargs):
+    def __init__(self, conn: Redis, client, **kwargs):
         """
         Class for enqueuing tasks using 'RQ'.
         """
 
-        super().__init__(interface)
+        super().__init__(client)
         self._conn = conn
         self._queue = Queue(connection=conn, **kwargs)
 
@@ -33,10 +33,10 @@ class RQRunner(BaseRunner):
         task.initialize(rq_task.id)
 
         self._queue.enqueue_job(rq_task)
-        self._queue.enqueue(_when_done, task.db.id, self._intf, depends_on=rq_task)
+        self._queue.enqueue(_when_done, task.db.id, self._client, depends_on=rq_task)
 
     def make_task(self, f, *args, **kwargs) -> RQTask:
-        return RQTask(f, self._intf, args=args, kwargs=kwargs)
+        return RQTask(f, self._client, args=args, kwargs=kwargs)
 
     def get_result(self, task_id):
         job = self._queue.fetch_job(task_id)

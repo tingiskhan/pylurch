@@ -1,19 +1,18 @@
 import pandas as pd
-from typing import Union, Callable, Any, Dict, Optional, List
+from typing import Callable, Any, Dict, Optional, List
 from logging import Logger
-import numpy as np
 from pylurch.contract.interface import SessionInterface
 from pylurch.contract import database as db
 from pyalfred.server.utils import make_base_logger
-from .model import InferenceModel, T
+from .blueprint import InferenceModelBlueprint, TModel, TOutput
+from .container import InferenceContainer
+from .types import FrameOrArray
 
-
-FrameOrArray = Union[pd.DataFrame, np.ndarray]
-Func = Callable[[T, FrameOrArray, Optional[FrameOrArray], Dict[str, Any]], Any]
+Func = Callable[[InferenceContainer[TModel], FrameOrArray, Optional[FrameOrArray], Dict[str, Any]], Any]
 
 
 class ModelWrapper(object):
-    def __init__(self, model: InferenceModel, intf: SessionInterface, logger: Logger = None):
+    def __init__(self, model: InferenceModelBlueprint[TModel, TOutput], intf: SessionInterface, logger: Logger = None):
         """
         Defines a base class for performing inference etc.
         """
@@ -23,13 +22,13 @@ class ModelWrapper(object):
         self._intf = intf
 
     @property
-    def model(self) -> InferenceModel:
+    def model(self) -> InferenceModelBlueprint:
         return self._model
 
     def _run(
         self,
         func: Func,
-        model: T,
+        model: InferenceContainer[TModel],
         x: FrameOrArray,
         name: str,
         y: FrameOrArray = None,
@@ -42,7 +41,7 @@ class ModelWrapper(object):
             msg = f"'{model_name}' inherits from '{self._model.base.name()}' and is thus not trainable!"
             raise NotImplementedError(msg)
 
-        with self._intf.begin_session(model_name, name) as session:
+        with self._intf.begin_training_session(model_name, name) as session:
             self.logger.info(f"Starting training of '{model_name}' with '{name}' and using {x.shape[0]} observations")
 
             res = func(model, x, y=y, **kwargs)
@@ -56,11 +55,7 @@ class ModelWrapper(object):
             # ===== Save labels ===== #
             session.add_labels(labels)
 
-            # ===== Save meta data ===== #
-            meta_data = self._model.add_metadata(res, x=x, y=y, **kwargs)
-            session.add_metadatas(meta_data)
-
-            return session.session
+            return session.context
 
     def do_run(self, modkwargs, x: FrameOrArray, name: str, y: FrameOrArray = None, labels: List[str] = None, **kwargs):
         self._run(self._model.fit, self._model.make_model(**modkwargs), x, name=name, y=y, labels=labels, **kwargs)
@@ -76,8 +71,12 @@ class ModelWrapper(object):
 
         self._intf.create(link)
 
-    def do_predict(self, model_name: str, x, orient, as_array=False, **kwargs):
-        x_hat = self._model.predict(self.load(model_name), x, **kwargs)
+    def do_predict(self, session_name: str, x, orient, as_array=False, **kwargs):
+        session = self.get_session(session_name)
+
+        with self._intf.begin_prediction_session(session.id) as prediction_session:
+            container = prediction_session.load_model(self._model)
+            x_hat = self._model.predict(container, x, **kwargs)
 
         if isinstance(x_hat, pd.Series):
             x_hat = x_hat.to_frame(x_hat.name or "y")
@@ -101,7 +100,7 @@ class ModelWrapper(object):
 
         return self._intf.get_session(self._model.name(), session_name, only_succeeded=only_succeeded)
 
-    def load(self, session_name: str) -> T:
+    def load(self, session_name: str) -> TOutput:
         if self._model.is_derived:
             self.logger.info(f"'{self._model.name()}' is derived and loads model from {self._model.base.name()}")
             return ModelWrapper(self._model.base, self._intf).load(session_name)

@@ -1,1 +1,1 @@
-from pylurch.inference import InferenceModel
+from pylurch.inference import InferenceModelBlueprint

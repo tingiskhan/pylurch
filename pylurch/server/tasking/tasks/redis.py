@@ -9,8 +9,8 @@ class RQTask(BaseTask):
     Class for tasking queues with 'RQ'.
     """
 
-    def __init__(self, f, intf, args=None, kwargs=None):
-        super().__init__(f, intf, args=args, kwargs=kwargs)
+    def __init__(self, f, client, args=None, kwargs=None):
+        super().__init__(f, client, args=args, kwargs=kwargs)
         self._timeout = 2 * 3600
 
     def make_rqtask(self, queue: Queue):
@@ -19,5 +19,5 @@ class RQTask(BaseTask):
     def initialize(self, key: str = None):
         task = db.Task(key=key, start_time=datetime.now(), end_time=datetime.max, status=e.Status.Queued)
 
-        self._db = self._intf.create(task)
+        self._db = self._client.create(task)
         return self

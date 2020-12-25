@@ -27,7 +27,7 @@ class FunctionDecorator(object):
 
 
 class BaseTask(object):
-    def __init__(self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], intf: DatabaseInterface, args=None, kwargs=None):
+    def __init__(self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], client: DatabaseInterface, args=None, kwargs=None):
         """
         Defines a base class for tasks.
         """
@@ -39,12 +39,12 @@ class BaseTask(object):
         self._metas = dict()
 
         self._db = None  # type: db.Task
-        self._intf = intf
+        self._client = client
 
     def initialize(self, key: str = None):
         task = db.Task(key=key or uuid4().hex, start_time=datetime.now(), end_time=datetime.max, status=e.Status.Queued)
 
-        self._db = self._intf.create(task)
+        self._db = self._client.create(task)
         return self
 
     @property
@@ -66,7 +66,7 @@ class BaseTask(object):
         if x in (e.Status.Failed, e.Status.Done):
             self._db.end_time = datetime.now()
 
-        self._db = self._intf.update(self._db)[0]
+        self._db = self._client.update(self._db)[0]
 
     def add_meta(self, key, value):
         if key not in self._metas:
@@ -78,7 +78,7 @@ class BaseTask(object):
         return self
 
     def fail(self, exc: Exception):
-        self._intf.create(db.TaskException(task_id=self._db.id, type_=exc.__class__.__name__, message=repr(exc)))
+        self._client.create(db.TaskException(task_id=self._db.id, type_=exc.__class__.__name__, message=repr(exc)))
 
         self.status = e.Status.Failed
 
@@ -88,8 +88,8 @@ class BaseTask(object):
         # TODO: Improve
         for k, v in self._metas.items():
             if v.id is None:
-                self._metas[k] = self._intf.create(v)
+                self._metas[k] = self._client.create(v)
             else:
-                self._metas[k] = self._intf.update(v)
+                self._metas[k] = self._client.update(v)
 
         return self

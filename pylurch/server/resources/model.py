@@ -6,7 +6,7 @@ from pylurch.contract.enums import Status
 import pylurch.contract.schema as sc
 from pylurch.contract.interface import SessionInterface
 from ..tasking.runners.base import BaseRunner
-from pylurch.inference import InferenceModel, ModelWrapper
+from pylurch.inference import InferenceModelBlueprint, ModelWrapper
 
 
 class ModelResource(HTTPEndpoint):
@@ -14,7 +14,9 @@ class ModelResource(HTTPEndpoint):
     manager: BaseRunner = None
 
     @classmethod
-    def make_endpoint(cls, model_resource: InferenceModel, manager: BaseRunner, intf: SessionInterface, **kwargs):
+    def make_endpoint(
+        cls, model_resource: InferenceModelBlueprint, manager: BaseRunner, intf: SessionInterface, **kwargs
+    ):
         """
         Base object for exposing model object.
         :param model_resource: The model resource
@@ -59,12 +61,12 @@ class ModelResource(HTTPEndpoint):
 
         x_d, y_d = self.wrap.model.parse_x_y(put_req["x"], y=put_req["y"], orient=put_req["orient"])
 
-        modkwargs = put_req["modkwargs"] or dict()
-        akws = put_req["algkwargs"] or dict()
+        model_kwargs = put_req["model_kwargs"] or dict()
+        akws = put_req["alg_kwargs"] or dict()
         labels = put_req["labels"] or list()
 
         name = put_req["name"]
-        key = self.manager.enqueue(self.wrap.do_run, modkwargs, x_d, name=name, labels=labels, y=y_d, **akws)
+        key = self.manager.enqueue(self.wrap.do_run, model_kwargs, x_d, name=name, labels=labels, y=y_d, **akws)
 
         resp = sc.PutResponse().dump({"task_id": key, "status": self.manager.check_status(key), "name": name})
         return JSONResponse(resp)

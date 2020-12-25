@@ -1,1 +1,1 @@
-from .regression import LogisticRegressionModel, LinearRegressionModel
+from .regression import LogisticRegressionBlueprint, LinearRegressionBlueprint

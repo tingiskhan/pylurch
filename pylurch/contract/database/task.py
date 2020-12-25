@@ -2,6 +2,7 @@ from . import BaseMixin, Base
 from sqlalchemy import Column, String, DateTime, Integer, Enum, ForeignKey
 from ..enums import Status
 from datetime import datetime
+from .exception import ExceptionTemplate
 
 
 # TODO: Serialize inputs?
@@ -21,7 +22,5 @@ class TaskMeta(BaseMixin, Base):
     value = Column(String(255), nullable=False)
 
 
-class TaskException(BaseMixin, Base):
+class TaskException(ExceptionTemplate, Base):
     task_id = Column(Integer, ForeignKey(Task.id), nullable=False)
-    type_ = Column(String(), nullable=False)
-    message = Column(String(), nullable=False)

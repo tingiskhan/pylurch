@@ -11,14 +11,14 @@ from ..enums import Status
 
 # TODO: Improve this
 class GenericModelInterface(BaseInterface):
-    def __init__(self, base, endpoint, refresh=0.1, **modkwargs):
+    def __init__(self, base, endpoint, refresh=0.1, **model_kwargs):
         """
         Implements an interface for talking to models.
-        :param modkwargs: Any key worded arguments for the model to pass on instantiation. Only applies to training
+        :param model_kwargs: Any key worded arguments for the model to pass on instantiation. Only applies to training
         """
 
         super().__init__(base, endpoint)
-        self._mk = modkwargs
+        self._mk = model_kwargs
 
         self._name = None
         self._task_id = None
@@ -62,7 +62,7 @@ class GenericModelInterface(BaseInterface):
         y: pd.DataFrame = None,
         wait: bool = True,
         labels: List[str] = None,
-        **algkwargs,
+        **alg_kwargs,
     ):
         """
         Method for fitting the model.
@@ -71,13 +71,13 @@ class GenericModelInterface(BaseInterface):
         :param name: The name of the session
         :param wait: Whether to wait for it complete
         :param labels: Whether to add labels to the training session
-        :param algkwargs: Any algorithm key words
+        :param alg_kwargs: Any algorithm key words
         """
 
         params = {
             "x": x.to_json(orient=self._orient),
-            "algkwargs": algkwargs,
-            "modkwargs": self._mk,
+            "alg_kwargs": alg_kwargs,
+            "model_kwargs": self._mk,
             "orient": self._orient,
             "name": name,
             "labels": labels,
