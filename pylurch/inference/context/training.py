@@ -19,6 +19,10 @@ class TrainingSessionContext(SessionContext):
     def model(self):
         return self._container.model
 
+    @property
+    def container(self):
+        return self._container
+
     @container_exists()
     def fit(self, x: FrameOrArray, y: FrameOrArray = None, **kwargs):
         self._blueprint.fit(self._container, x, y, **kwargs)

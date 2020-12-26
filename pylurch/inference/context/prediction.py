@@ -7,6 +7,10 @@ class PredictionSessionContext(SessionContext):
         super().__init__(context, blueprint)
         self._container = self._load()
 
+    @property
+    def container(self):
+        return self._container
+
     def _load(self):
         result = self.context.get_result()
         return self._blueprint.deserialize(result)
