@@ -1,4 +1,3 @@
 from .blueprint import InferenceModelBlueprint
-from .container import InferenceContainer
-from .wrapper import ModelWrapper
+from .container import InferenceContainer, LoadedContainer
 from .sessionmanager import SessionManager

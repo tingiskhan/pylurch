@@ -1,7 +1,6 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Sequence
 from queue import Queue
-from ...database import Result, Label, Score, Package
-from ...enums import SerializerBackend
+from ...database import Artifact, Label, Score, Package
 from .base import ClientContext
 
 
@@ -12,7 +11,7 @@ class ClientTrainingContext(ClientContext):
         self._to_commit = Queue()
 
     def add_label(self, label: str):
-        return Label(session_id=self._session.id, label=label)
+        self._to_commit.put(Label(session_id=self._session.id, label=label))
 
     def add_labels(self, labels: List[str]):
         for label in labels:
@@ -25,8 +24,10 @@ class ClientTrainingContext(ClientContext):
         for k, v in scores.items():
             self.add_score(k, v)
 
-    def add_result(self, model: bytes, backend: SerializerBackend):
-        self._to_commit.put(Result(session_id=self._session.id, bytes=model, backend=backend))
+    def add_result(self, artifacts: Sequence[Artifact]):
+        for a in artifacts:
+            a.session_id = self.session.id
+            self._to_commit.put(a)
 
     def add_package(self, package: str, version: str):
         self._to_commit.put(Package(session_id=self._session.id, name=package, version=version))

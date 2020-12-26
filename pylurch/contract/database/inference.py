@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, LargeBinary, Integer, ForeignKey, Enum, UniqueConstraint, select, Float
 from sqlalchemy.orm import column_property
 from . import Base, BaseMixin
-from ..enums import SerializerBackend
+from ..enums import Backend, ArtifactType
 from .utils import custom_column_property
 from .exception import ExceptionTemplate
 
@@ -13,10 +13,13 @@ class Model(BaseMixin, Base):
     __table_args__ = (UniqueConstraint(name, revision),)
 
 
-class Result(BaseMixin, Base):
-    session_id = Column(Integer, ForeignKey("TrainingSession.id"), nullable=False, unique=True)
-    backend = Column(Enum(SerializerBackend, create_constraint=False, native_enum=False), nullable=False)
+class Artifact(BaseMixin, Base):
+    session_id = Column(Integer, ForeignKey("TrainingSession.id"), nullable=False)
+    type_ = Column(Enum(ArtifactType, create_constraint=False, native_enum=False), nullable=False)
+    backend = Column(Enum(Backend, create_constraint=False, native_enum=False), nullable=False)
     bytes = Column(LargeBinary(), nullable=False)
+
+    __table_args__ = (UniqueConstraint(session_id, type_),)
 
 
 class TrainingSession(BaseMixin, Base):
@@ -25,8 +28,11 @@ class TrainingSession(BaseMixin, Base):
     name = Column(String(255), nullable=False)
     version = Column(Integer(), nullable=False)
 
-    has_result = custom_column_property(column_property, "has_result")(
-        select([Result.id]).where(Result.session_id == id).as_scalar() != None, nullable=True, default=False
+    has_model = custom_column_property(column_property, "has_model")(
+        select([Artifact.id]).where((Artifact.session_id == id) & (Artifact.type_ == ArtifactType.Model)).as_scalar()
+        != None,
+        nullable=True,
+        default=False,
     )
 
     __table_args__ = (UniqueConstraint(model_id, name, version),)

@@ -9,7 +9,7 @@ class PredictionSessionContext(SessionContext):
 
     def _load(self):
         result = self.context.get_result()
-        return self._blueprint.deserialize(result.bytes)
+        return self._blueprint.deserialize(result)
 
     def _on_exit(self):
         self._container = None

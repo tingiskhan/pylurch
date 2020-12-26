@@ -1,17 +1,15 @@
 import pandas as pd
-from typing import Dict, Union, Tuple, Any, Generic, TypeVar
+from typing import Dict, Tuple, Any, Generic, TypeVar
 import numpy as np
-import dill
-import onnxruntime as rt
 import git
-from pylurch.contract import enums
-from .container import InferenceContainer, TModel
+from pylurch.contract import database as db, enums
+from .container import InferenceContainer, LoadedContainer, TModel
 from .types import FrameOrArray
 
 
 TOutput = TypeVar("TOutput")
 T = InferenceContainer[TModel]
-U = InferenceContainer[TOutput]
+U = LoadedContainer[TOutput]
 
 
 class InferenceModelBlueprint(Generic[TModel, TOutput]):
@@ -39,9 +37,6 @@ class InferenceModelBlueprint(Generic[TModel, TOutput]):
     def name(self):
         return self._name
 
-    def serializer_backend(self) -> enums.SerializerBackend:
-        raise NotImplementedError()
-
     def parse_x_y(self, x: str, y: str = None, **kwargs) -> Tuple[FrameOrArray, ...]:
         parsed_x = pd.read_json(x, **kwargs).sort_index()
         parsed_y = y if y is None else pd.read_json(y, **kwargs).sort_index()
@@ -51,18 +46,13 @@ class InferenceModelBlueprint(Generic[TModel, TOutput]):
     def make_model(self, **kwargs) -> T:
         raise NotImplementedError()
 
-    def serialize(self, container: T, *args: Tuple[Any, ...], x: FrameOrArray = None, y: FrameOrArray = None) -> bytes:
+    def serialize(
+        self, container: T, *args: Tuple[Any, ...], x: FrameOrArray = None, y: FrameOrArray = None
+    ) -> Tuple[db.Artifact, ...]:
         raise NotImplementedError()
 
-    def deserialize(self, byte_string: bytes) -> U:
-        if self.serializer_backend() == enums.SerializerBackend.Custom:
-            raise NotImplementedError("Please override this method!")
-
-        if self.serializer_backend() == enums.SerializerBackend.ONNX:
-            return InferenceContainer(rt.InferenceSession(byte_string))
-
-        if self.serializer_backend() == enums.SerializerBackend.Dill:
-            return InferenceContainer(dill.loads(byte_string))
+    def deserialize(self, artifacts: Tuple[db.Artifact, ...]) -> U:
+        raise NotImplementedError()
 
     def fit(self, container: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]):
         raise NotImplementedError()
@@ -71,8 +61,10 @@ class InferenceModelBlueprint(Generic[TModel, TOutput]):
         raise ValueError("This model does not support updating!")
 
     def predict(self, container: U, x: FrameOrArray, **kwargs: Dict[str, object]) -> FrameOrArray:
-        if self.serializer_backend() != enums.SerializerBackend.ONNX:
-            raise NotImplementedError(f"You must override the method yourself!")
+        if container.backend != enums.Backend.ONNX:
+            raise NotImplementedError(
+                f"Backend must be of type of {enums.Backend.ONNX}, not {container.backend}"
+            )
 
         inp_name = container.model.get_inputs()[0].name
         label_name = container.model.get_outputs()[0].name

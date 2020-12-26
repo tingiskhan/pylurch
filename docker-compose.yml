@@ -7,32 +7,12 @@ services:
       - POSTGRES_PASSWORD=postgres
     ports:
       - 5432:5432
-  db_server:
+  server:
     build: .
-    entrypoint: uvicorn example.db_app:init_app --port 8080 --host 0.0.0.0 --factory --workers 3
+    entrypoint: uvicorn example.app:init_app --port 8080 --host 0.0.0.0 --factory --workers 3
     environment:
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:postgres@postgres:5432/postgres
     ports:
-      - 8081:8080
-    depends_on:
-      - postgres
-  redis:
-    image: redis
-    ports:
-      - 6379:6379
-  redis_worker:
-    build: .
-    entrypoint: rq worker -u redis://redis:6379
-    depends_on:
-      - redis
-  ml_server:
-    build: .
-    environment:
-      - DATABASE_URI=http://db_server:8080
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    ports:
       - 8080:8080
     depends_on:
-      - redis_worker
-      - db_server
+      - postgres

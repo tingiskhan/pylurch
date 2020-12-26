@@ -10,7 +10,14 @@ class Status(Enum):
     Queued = "Queued"
 
 
-class SerializerBackend(Enum):
+class Backend(Enum):
+    Sklearn = "Sklearn"
+    Pytorch = "Pytorch"
     Dill = "Dill"
     ONNX = "ONNX"
     Custom = "Custom"
+
+
+class ArtifactType(Enum):
+    Model = "Model"
+    State = "State"

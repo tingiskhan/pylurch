@@ -12,7 +12,7 @@ class SessionInterface(DatabaseInterface):
     def _get_session(self, model: Model, session_name: str, only_succeeded=False, latest=True):
         def f(u: TrainingSession):
             if only_succeeded:
-                return (u.name == session_name) & (u.model_id == model.id) & (u.has_result == True)
+                return (u.name == session_name) & (u.model_id == model.id) & (u.has_model == True)
 
             return (u.name == session_name) & (u.model_id == model.id)
 
@@ -56,7 +56,7 @@ class SessionInterface(DatabaseInterface):
         return ClientPredictionContext(self._client, session)
 
     def get_session(
-            self, model_name: str, model_revision: str, session_name: str, only_succeeded=False
+        self, model_name: str, model_revision: str, session_name: str, only_succeeded=False
     ) -> Union[TrainingSession, None]:
 
         model = self._get_model(model_name, model_revision)

@@ -27,7 +27,9 @@ class FunctionDecorator(object):
 
 
 class BaseTask(object):
-    def __init__(self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], client: DatabaseInterface, args=None, kwargs=None):
+    def __init__(
+        self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], client: DatabaseInterface, args=None, kwargs=None
+    ):
         """
         Defines a base class for tasks.
         """
