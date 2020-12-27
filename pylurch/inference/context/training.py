@@ -30,4 +30,4 @@ class TrainingSessionContext(SessionContext):
     @container_exists()
     def save(self, *args, x: FrameOrArray = None, y: FrameOrArray = None):
         artifacts = self._blueprint.serialize(self._container, *args, x=x, y=y)
-        self.context.add_result(artifacts)
+        self.context.add_artifacts(artifacts)

@@ -24,9 +24,12 @@ class ClientTrainingContext(ClientContext):
         for k, v in scores.items():
             self.add_score(k, v)
 
-    def add_result(self, artifacts: Sequence[Artifact]):
+    def add_artifact(self, artifact: Artifact):
+        artifact.session_id = self.session.id
+        self._to_commit.put(artifact)
+
+    def add_artifacts(self, artifacts: Sequence[Artifact]):
         for a in artifacts:
-            a.session_id = self.session.id
             self._to_commit.put(a)
 
     def add_package(self, package: str, version: str):

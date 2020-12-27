@@ -8,6 +8,9 @@ from pylurch.contract.enums import Backend, ArtifactType
 
 
 class LinearRegressionBlueprint(InferenceModelBlueprint[LinearRegression, rt.InferenceSession]):
+    def name(self):
+        return "linear-regression-model"
+
     def serialize(self, container, *_, x=None, y=None):
         inputs = [
             ("x", FloatTensorType([None, x.shape[-1]])),
@@ -36,5 +39,8 @@ class LinearRegressionBlueprint(InferenceModelBlueprint[LinearRegression, rt.Inf
 
 
 class LogisticRegressionBlueprint(LinearRegressionBlueprint):
+    def name(self):
+        return "logistic-regression-model"
+
     def make_model(self, **kwargs):
         return InferenceContainer(LogisticRegressionCV(**kwargs))

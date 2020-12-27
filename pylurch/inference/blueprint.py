@@ -13,35 +13,13 @@ U = LoadedContainer[TOutput]
 
 
 class InferenceModelBlueprint(Generic[TModel, TOutput]):
-    def __init__(self, name: str = None, base=None):
-        """
-        Defines a base class for performing inference etc.
-        """
-
-        self._name = name or self.__class__.__name__
-        self._base = base  # type: InferenceModelBlueprint
-
-    @property
-    def base(self):
-        return self._base
-
-    @property
-    def is_derived(self) -> bool:
-        return self._base is not None
-
     @staticmethod
     def git_commit_hash():
         repo = git.Repo(search_parent_directories=True)
         return repo.head.object.hexsha
 
     def name(self):
-        return self._name
-
-    def parse_x_y(self, x: str, y: str = None, **kwargs) -> Tuple[FrameOrArray, ...]:
-        parsed_x = pd.read_json(x, **kwargs).sort_index()
-        parsed_y = y if y is None else pd.read_json(y, **kwargs).sort_index()
-
-        return parsed_x, parsed_y
+        raise NotImplementedError()
 
     def make_model(self, **kwargs) -> T:
         raise NotImplementedError()
