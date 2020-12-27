@@ -30,7 +30,7 @@ class ClientTrainingContext(ClientContext):
 
     def add_artifacts(self, artifacts: Sequence[Artifact]):
         for a in artifacts:
-            self._to_commit.put(a)
+            self.add_artifact(a)
 
     def add_package(self, package: str, version: str):
         self._to_commit.put(Package(session_id=self._session.id, name=package, version=version))
