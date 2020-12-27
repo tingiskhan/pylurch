@@ -41,7 +41,7 @@ class ClientTrainingContext(ClientContext):
 
     def on_exit(self):
         for to_commit in iter(self._to_commit.get, None):
-            self._client.create(to_commit)
+            self._client.create(to_commit, batched=True)
 
             if self._to_commit.empty():
                 return
