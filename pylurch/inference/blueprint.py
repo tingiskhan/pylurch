@@ -13,8 +13,7 @@ U = LoadedContainer[TOutput]
 
 
 class InferenceModelBlueprint(Generic[TModel, TOutput]):
-    @staticmethod
-    def git_commit_hash():
+    def get_revision(self):
         repo = git.Repo(search_parent_directories=True)
         return repo.head.object.hexsha
 

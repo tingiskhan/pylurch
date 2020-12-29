@@ -11,7 +11,7 @@ class SessionManager(object):
 
     def begin_training_session(self, session_name: str, **kwargs):
         context = self._client.begin_training_session(
-            self._blueprint.name(), self._blueprint.git_commit_hash(), session_name
+            self._blueprint.name(), self._blueprint.get_revision(), session_name
         )
 
         return TrainingSessionContext(context, self._blueprint, **kwargs)
