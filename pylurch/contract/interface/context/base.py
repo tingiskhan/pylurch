@@ -1,10 +1,9 @@
-from typing import Union, List
 from pyalfred.contract.interface import DatabaseInterface
-from ...database import TrainingSession, Artifact, SessionException
+from ...database import TrainingSession, SessionException
 
 
 # TODO: Move context?
-class ClientContext(object):
+class Context(object):
     def __init__(self, client: DatabaseInterface, training_session: TrainingSession):
         self._client = client
         self._session = training_session
@@ -31,8 +30,3 @@ class ClientContext(object):
 
     def on_exit(self):
         raise NotImplementedError()
-
-
-class LoadableClientContext(ClientContext):
-    def get_result(self) -> Union[Artifact, List[Artifact]]:
-        return self._client.get(Artifact, lambda u: u.session_id == self._session.id)

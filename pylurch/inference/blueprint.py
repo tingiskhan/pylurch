@@ -34,14 +34,12 @@ class InferenceModelBlueprint(Generic[TModel, TOutput]):
     def fit(self, container: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]):
         raise NotImplementedError()
 
-    def update(self, container: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]):
-        raise ValueError("This model does not support updating!")
+    def update(self, container: U, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]):
+        raise ValueError()
 
     def predict(self, container: U, x: FrameOrArray, **kwargs: Dict[str, object]) -> FrameOrArray:
         if container.backend != enums.Backend.ONNX:
-            raise NotImplementedError(
-                f"Backend must be of type of {enums.Backend.ONNX}, not {container.backend}"
-            )
+            raise NotImplementedError(f"Backend must be of type of {enums.Backend.ONNX}, not {container.backend}")
 
         inp_name = container.model.get_inputs()[0].name
         label_name = container.model.get_outputs()[0].name

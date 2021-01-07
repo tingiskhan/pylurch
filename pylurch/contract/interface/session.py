@@ -1,31 +1,30 @@
 from typing import Union
 from pyalfred.contract.interface import DatabaseInterface
 from ..database import TrainingSession, Model, BaseMixin
-from .context import ClientTrainingContext, ClientPredictionContext
+from .context import TrainingContext, PredictionContext, UpdateContext
 
 
 class SessionInterface(DatabaseInterface):
     def __init__(self, base_url: str):
         super().__init__(base_url, mixin_ignore=BaseMixin)
-        self._client = DatabaseInterface(base_url)
 
-    def _get_session(self, model: Model, session_name: str, only_succeeded=False, latest=True):
+    def _get_session(self, model_id: int, session_name: str, only_succeeded=False, latest=True):
         def f(u: TrainingSession):
             if only_succeeded:
-                return (u.name == session_name) & (u.model_id == model.id) & (u.has_model == True)
+                return (u.name == session_name) & (u.model_id == model_id) & (u.has_model == True)
 
-            return (u.name == session_name) & (u.model_id == model.id)
+            return (u.name == session_name) & (u.model_id == model_id)
 
         if latest:
             return self.get(TrainingSession, f, one=True, operations="order by id desc,first")
 
         return self.get(TrainingSession, f)
 
-    def _create_session(self, model: Model, session_name: str) -> TrainingSession:
-        latest_session = self._get_session(model, session_name)
+    def _create_session(self, model_id: int, session_name: str) -> TrainingSession:
+        latest_session = self._get_session(model_id, session_name)
 
         session = TrainingSession(
-            model_id=model.id, name=session_name, version=1 if latest_session is None else (latest_session.version + 1),
+            model_id=model_id, name=session_name, version=1 if latest_session is None else (latest_session.version + 1),
         )
 
         return self.create(session)
@@ -43,24 +42,31 @@ class SessionInterface(DatabaseInterface):
 
     def begin_training_session(self, model_name: str, model_revision: str, session_name: str):
         model = self._get_create_model(model_name, model_revision)
-        session = self._create_session(model, session_name)
+        session = self._create_session(model.id, session_name)
 
-        return ClientTrainingContext(self, session)
+        return TrainingContext(self, session)
 
-    def update_session(self, *args, **kwargs):
-        raise NotImplementedError()
+    def begin_update_session(self, new_session_name: str, old_training_session: int):
+        old_session = self.get(TrainingSession, lambda u: u.id == old_training_session, one=True)
+
+        if (old_session is None) or not old_session.has_model:
+            raise ValueError(f"The TrainingSession with id {old_training_session} does not exist!")
+
+        new_session = self._create_session(old_session.model_id, new_session_name)
+
+        return UpdateContext(self, new_session, old_session)
 
     def begin_prediction_session(self, session_id: int):
-        session = self._client.get(TrainingSession, lambda u: u.id == session_id, one=True)
+        session = self.get(TrainingSession, lambda u: u.id == session_id, one=True)
 
         if session is None:
             raise ValueError(f"No {TrainingSession.__name__} exists with id: {session_id}!")
 
-        return ClientPredictionContext(self._client, session)
+        return PredictionContext(self, session)
 
     def get_session(
         self, model_name: str, model_revision: str, session_name: str, only_succeeded=False
     ) -> Union[TrainingSession, None]:
 
         model = self._get_model(model_name, model_revision)
-        return self._get_session(model, session_name, only_succeeded=only_succeeded)
+        return self._get_session(model.id, session_name, only_succeeded=only_succeeded)

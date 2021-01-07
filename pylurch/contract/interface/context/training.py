@@ -1,14 +1,11 @@
-from typing import List, Dict, Any, Sequence
-from queue import Queue
-from ...database import Artifact, Label, Score, Package
-from .base import ClientContext
+from typing import List, Dict, Any
+from ...database import Label, Score, Package
+from .update import UpdateContext
 
 
-class ClientTrainingContext(ClientContext):
+class TrainingContext(UpdateContext):
     def __init__(self, client, training_session):
-        super().__init__(client, training_session)
-
-        self._to_commit = Queue()
+        super().__init__(client, training_session, None)
 
     def add_label(self, label: str):
         self._to_commit.put(Label(session_id=self._session.id, label=label))
@@ -24,24 +21,9 @@ class ClientTrainingContext(ClientContext):
         for k, v in scores.items():
             self.add_score(k, v)
 
-    def add_artifact(self, artifact: Artifact):
-        artifact.session_id = self.session.id
-        self._to_commit.put(artifact)
-
-    def add_artifacts(self, artifacts: Sequence[Artifact]):
-        for a in artifacts:
-            self.add_artifact(a)
-
     def add_package(self, package: str, version: str):
         self._to_commit.put(Package(session_id=self._session.id, name=package, version=version))
 
     def add_packages(self, packages: Dict[str, str]):
         for k, v in packages.items():
             self.add_package(k, v)
-
-    def on_exit(self):
-        for to_commit in iter(self._to_commit.get, None):
-            self._client.create(to_commit, batched=True)
-
-            if self._to_commit.empty():
-                return
