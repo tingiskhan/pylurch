@@ -16,7 +16,10 @@ class SessionInterface(DatabaseInterface):
 
             return (u.name == session_name) & (u.model_id == model.id)
 
-        return self.get(TrainingSession, f, latest=latest)
+        if latest:
+            return self.get(TrainingSession, f, one=True, operations="order by id desc,first")
+
+        return self.get(TrainingSession, f)
 
     def _create_session(self, model: Model, session_name: str) -> TrainingSession:
         latest_session = self._get_session(model, session_name)

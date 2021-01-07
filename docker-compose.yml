@@ -13,6 +13,6 @@ services:
     environment:
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:postgres@postgres:5432/postgres
     ports:
-      - 8080:8080
+      - 5000:8080
     depends_on:
       - postgres
