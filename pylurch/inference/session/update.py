@@ -14,4 +14,4 @@ class UpdateSession(Saveable):
 
     @container_exists()
     def update(self, x: FrameOrArray, y: FrameOrArray = None, **kwargs):
-        self._blueprint.fit(self._container, x, y, **kwargs)
+        self._blueprint.update(self._container, x, y, **kwargs)
