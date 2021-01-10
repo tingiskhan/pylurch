@@ -1,1 +1,1 @@
-from .session import SessionInterface
+from .session import SessionClient

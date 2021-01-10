@@ -1,11 +1,11 @@
-from pylurch.contract.client import SessionInterface
+from pylurch.contract.client import SessionClient
 from .blueprint import InferenceModelBlueprint, TModel, TOutput
 from .session import TrainingSession, PredictionSession, UpdateSession
 
 
 # TODO: Should this be context as well...?
 class SessionManager(object):
-    def __init__(self, client: SessionInterface, blueprint: InferenceModelBlueprint[TModel, TOutput]):
+    def __init__(self, client: SessionClient, blueprint: InferenceModelBlueprint[TModel, TOutput]):
         self._client = client
         self._blueprint = blueprint
 

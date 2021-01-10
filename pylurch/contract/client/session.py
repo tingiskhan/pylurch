@@ -4,7 +4,7 @@ from ..database import TrainingSession, Model, BaseMixin
 from .context import TrainingContext, PredictionContext, UpdateContext
 
 
-class SessionInterface(Client):
+class SessionClient(Client):
     def __init__(self, base_url: str):
         super().__init__(base_url, mixin_ignore=BaseMixin)
 
