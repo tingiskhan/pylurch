@@ -2,7 +2,7 @@ from typing import Dict, Callable, Tuple, Any
 from datetime import datetime
 from uuid import uuid4
 from pylurch.contract import enums as e, database as db
-from pyalfred.contract.interface import DatabaseInterface
+from pyalfred.contract.client import Client
 
 
 class FunctionDecorator(object):
@@ -28,7 +28,7 @@ class FunctionDecorator(object):
 
 class BaseTask(object):
     def __init__(
-        self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], client: DatabaseInterface, args=None, kwargs=None
+        self, f: Callable[[Tuple[Any], Dict[str, Any]], Any], client: Client, args=None, kwargs=None
     ):
         """
         Defines a base class for tasks.

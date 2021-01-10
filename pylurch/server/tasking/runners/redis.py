@@ -1,13 +1,13 @@
 from redis import Redis
 from rq import Queue
-from pyalfred.contract.interface import DatabaseInterface
+from pyalfred.contract.client import Client
 from pylurch.contract.enums import Status
 from pylurch.contract.database import Task
 from ..tasks import RQTask
 from .base import BaseRunner
 
 
-def _when_done(task_id: int, interface: DatabaseInterface):
+def _when_done(task_id: int, interface: Client):
     task = interface.get(Task, lambda u: u.id == task_id, one=True)
 
     if task.status != Status.Running:

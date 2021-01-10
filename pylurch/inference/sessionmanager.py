@@ -1,4 +1,4 @@
-from pylurch.contract.interface import SessionInterface
+from pylurch.contract.client import SessionInterface
 from .blueprint import InferenceModelBlueprint, TModel, TOutput
 from .session import TrainingSession, PredictionSession, UpdateSession
 

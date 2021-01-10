@@ -3,11 +3,11 @@ from logging import Logger
 from ..tasks import BaseTask
 from pyalfred.server.utils import make_base_logger
 from pylurch.contract import enums as e, database as db
-from pyalfred.contract.interface import DatabaseInterface
+from pyalfred.contract.client import Client
 
 
 class BaseRunner(object):
-    def __init__(self, client: DatabaseInterface, logger: Logger = None):
+    def __init__(self, client: Client, logger: Logger = None):
         """
         Base class for enqueuing tasks.
         """

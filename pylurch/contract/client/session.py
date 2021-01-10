@@ -1,10 +1,10 @@
 from typing import Union
-from pyalfred.contract.interface import DatabaseInterface
+from pyalfred.contract.client import Client
 from ..database import TrainingSession, Model, BaseMixin
 from .context import TrainingContext, PredictionContext, UpdateContext
 
 
-class SessionInterface(DatabaseInterface):
+class SessionInterface(Client):
     def __init__(self, base_url: str):
         super().__init__(base_url, mixin_ignore=BaseMixin)
 

@@ -1,10 +1,10 @@
-from pyalfred.contract.interface import DatabaseInterface
+from pyalfred.contract.client import Client
 from ...database import TrainingSession, SessionException
 
 
 # TODO: Move context?
 class Context(object):
-    def __init__(self, client: DatabaseInterface, training_session: TrainingSession):
+    def __init__(self, client: Client, training_session: TrainingSession):
         self._client = client
         self._session = training_session
 

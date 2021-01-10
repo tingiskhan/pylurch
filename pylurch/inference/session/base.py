@@ -1,6 +1,6 @@
 from typing import Union
 from ..blueprint import InferenceModelBlueprint
-from pylurch.contract.interface.context import PredictionContext, TrainingContext, UpdateContext
+from pylurch.contract.client.context import PredictionContext, TrainingContext, UpdateContext
 from .utils import container_exists
 from ..types import FrameOrArray
 
