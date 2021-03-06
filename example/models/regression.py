@@ -7,7 +7,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegressionCV
 from pylurch.contract.enums import Backend, ArtifactType
 
 
-class LinearRegressionBlueprint(ONNXModelBluePrint[LinearRegression, rt.InferenceSession]):
+class LinearRegressionBlueprint(ONNXModelBluePrint[LinearRegression]):
     def name(self):
         return "linear-regression-model"
 
