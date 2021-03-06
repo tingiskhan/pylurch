@@ -4,11 +4,11 @@ from ..database import TrainingSession, Model, BaseMixin
 from .context import TrainingContext, PredictionContext, UpdateContext
 
 
-class SessionClient(Client):
+class InferenceClient(Client):
     def __init__(self, base_url: str):
         super().__init__(base_url, mixin_ignore=BaseMixin)
 
-    def _get_session(self, model_id: int, session_name: str, only_succeeded=False, latest=True):
+    def _get_training_session(self, model_id: int, session_name: str, only_succeeded=False, latest=True):
         def f(u: TrainingSession):
             if only_succeeded:
                 return (u.name == session_name) & (u.model_id == model_id) & (u.has_model == True)
@@ -20,8 +20,8 @@ class SessionClient(Client):
 
         return self.get(TrainingSession, f)
 
-    def _create_session(self, model_id: int, session_name: str) -> TrainingSession:
-        latest_session = self._get_session(model_id, session_name)
+    def _create_training_session(self, model_id: int, session_name: str) -> TrainingSession:
+        latest_session = self._get_training_session(model_id, session_name)
 
         session = TrainingSession(
             model_id=model_id, name=session_name, version=1 if latest_session is None else (latest_session.version + 1),
@@ -42,7 +42,7 @@ class SessionClient(Client):
 
     def begin_training_session(self, model_name: str, model_revision: str, session_name: str):
         model = self._get_create_model(model_name, model_revision)
-        session = self._create_session(model.id, session_name)
+        session = self._create_training_session(model.id, session_name)
 
         return TrainingContext(self, session)
 
@@ -52,7 +52,7 @@ class SessionClient(Client):
         if (old_session is None) or not old_session.has_model:
             raise ValueError(f"The TrainingSession with id {old_training_session} does not exist!")
 
-        new_session = self._create_session(old_session.model_id, new_session_name)
+        new_session = self._create_training_session(old_session.model_id, new_session_name)
 
         return UpdateContext(self, new_session, old_session)
 
@@ -69,4 +69,4 @@ class SessionClient(Client):
     ) -> Union[TrainingSession, None]:
 
         model = self._get_model(model_name, model_revision)
-        return self._get_session(model.id, session_name, only_succeeded=only_succeeded)
+        return self._get_training_session(model.id, session_name, only_succeeded=only_succeeded)

@@ -9,7 +9,7 @@ class Context(object):
         self._session = training_session
 
     @property
-    def session(self):
+    def inference_session(self):
         return self._session
 
     def __enter__(self):

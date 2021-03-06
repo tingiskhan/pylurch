@@ -15,7 +15,7 @@ class UpdateContext(PredictionContext):
         return self._get_result(self._old_session.id)
 
     def add_artifact(self, artifact: Artifact):
-        artifact.session_id = self.session.id
+        artifact.session_id = self.inference_session.id
         self._to_commit.put(artifact)
 
     def add_artifacts(self, artifacts: Sequence[Artifact]):

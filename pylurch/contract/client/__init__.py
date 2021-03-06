@@ -1,1 +1,1 @@
-from .session import SessionClient
+from .client import InferenceClient
