@@ -10,14 +10,15 @@ from .types import FrameOrArray
 
 TOutput = TypeVar("TOutput")
 T = InferenceContainer[TModel]
+U = InferenceContainer[TOutput]
 
 
 class InferenceModelBlueprint(Generic[TModel, TOutput]):
-    def get_revision(self):
+    def get_revision(self) -> str:
         repo = git.Repo(search_parent_directories=True)
         return repo.head.object.hexsha
 
-    def name(self):
+    def name(self) -> str:
         raise NotImplementedError()
 
     def make_model(self, **kwargs) -> T:
@@ -28,16 +29,16 @@ class InferenceModelBlueprint(Generic[TModel, TOutput]):
     ) -> Tuple[db.Artifact, ...]:
         raise NotImplementedError()
 
-    def deserialize(self, artifacts: Tuple[db.Artifact, ...]) -> T:
+    def deserialize(self, artifacts: Tuple[db.Artifact, ...]) -> U:
         raise NotImplementedError()
 
-    def fit(self, container: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]):
+    def fit(self, container: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]) -> T:
         raise NotImplementedError()
 
-    def update(self, container: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]):
+    def update(self, container: U, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]) -> U:
         raise ValueError()
 
-    def predict(self, container: T, x: FrameOrArray, **kwargs: Dict[str, object]) -> FrameOrArray:
+    def predict(self, container: U, x: FrameOrArray, **kwargs: Dict[str, object]) -> FrameOrArray:
         raise NotImplementedError()
 
 
