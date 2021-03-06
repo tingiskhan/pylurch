@@ -1,15 +1,15 @@
-import pandas as pd
 from typing import Dict, Tuple, Any, Generic, TypeVar
-import numpy as np
 import git
-from pylurch.contract import database as db, enums
-from .container import InferenceContainer, LoadedContainer, TModel
+import pandas as pd
+import numpy as np
+from pylurch.contract import database as db
+from onnxruntime import InferenceSession
+from .container import InferenceContainer, TModel
 from .types import FrameOrArray
 
 
 TOutput = TypeVar("TOutput")
 T = InferenceContainer[TModel]
-U = LoadedContainer[TOutput]
 
 
 class InferenceModelBlueprint(Generic[TModel, TOutput]):
@@ -28,19 +28,21 @@ class InferenceModelBlueprint(Generic[TModel, TOutput]):
     ) -> Tuple[db.Artifact, ...]:
         raise NotImplementedError()
 
-    def deserialize(self, artifacts: Tuple[db.Artifact, ...]) -> U:
+    def deserialize(self, artifacts: Tuple[db.Artifact, ...]) -> T:
         raise NotImplementedError()
 
     def fit(self, container: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]):
         raise NotImplementedError()
 
-    def update(self, container: U, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]):
+    def update(self, container: T, x: FrameOrArray, y: FrameOrArray = None, **kwargs: Dict[str, object]):
         raise ValueError()
 
-    def predict(self, container: U, x: FrameOrArray, **kwargs: Dict[str, object]) -> FrameOrArray:
-        if container.backend != enums.Backend.ONNX:
-            raise NotImplementedError(f"Backend must be of type of {enums.Backend.ONNX}, not {container.backend}")
+    def predict(self, container: T, x: FrameOrArray, **kwargs: Dict[str, object]) -> FrameOrArray:
+        raise NotImplementedError()
 
+
+class ONNXModelBluePrint(InferenceModelBlueprint[TModel, InferenceSession]):
+    def predict(self, container: T, x: FrameOrArray, **kwargs: Dict[str, object]):
         inp_name = container.model.get_inputs()[0].name
         label_name = container.model.get_outputs()[0].name
 

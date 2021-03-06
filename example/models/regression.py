@@ -1,4 +1,4 @@
-from pylurch.inference import InferenceModelBlueprint, InferenceContainer, LoadedContainer
+from pylurch.inference import ONNXModelBluePrint, InferenceContainer
 from pylurch.contract.database import Artifact
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
@@ -7,7 +7,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegressionCV
 from pylurch.contract.enums import Backend, ArtifactType
 
 
-class LinearRegressionBlueprint(InferenceModelBlueprint[LinearRegression, rt.InferenceSession]):
+class LinearRegressionBlueprint(ONNXModelBluePrint[LinearRegression]):
     def name(self):
         return "linear-regression-model"
 
@@ -35,7 +35,7 @@ class LinearRegressionBlueprint(InferenceModelBlueprint[LinearRegression, rt.Inf
         if len(artifacts) > 1:
             raise ValueError("Cannot handle more than one artifact!")
 
-        return LoadedContainer(rt.InferenceSession(artifacts[0].bytes), artifacts[0].backend)
+        return InferenceContainer(rt.InferenceSession(artifacts[0].bytes))
 
 
 class LogisticRegressionBlueprint(LinearRegressionBlueprint):

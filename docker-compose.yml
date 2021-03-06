@@ -5,8 +5,6 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-    ports:
-      - 5432:5432
   server:
     build: .
     entrypoint: uvicorn example.app:init_app --port 8080 --host 0.0.0.0 --factory --workers 3
